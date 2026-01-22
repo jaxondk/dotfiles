@@ -1,0 +1,4 @@
+.bd-enabled
+bun.lock
+package.json
+node_modules/

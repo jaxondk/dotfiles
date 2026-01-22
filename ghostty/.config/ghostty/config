@@ -1,0 +1,58 @@
+# Ghostty Configuration
+
+# Font
+font-family = "JetBrains Mono"
+font-size = 14
+
+# Theme - uses built-in themes, run `ghostty +list-themes` to see all
+theme = dark:Catppuccin Mocha,light:Catppuccin Latte
+
+# Window
+window-padding-x = 8
+window-padding-y = 8
+window-decoration = auto
+
+# Cursor
+cursor-style = bar
+cursor-style-blink = false
+
+# Shell integration
+shell-integration = zsh
+shell-integration-features = cursor,sudo,title
+
+# Scrollback
+scrollback-limit = 10000000
+
+# Quick Terminal (Quake Mode)
+# Toggle with global keybind below
+quick-terminal-position = top
+quick-terminal-size = 40%
+quick-terminal-animation-duration = 0.15
+quick-terminal-autohide = true
+
+# Keybindings
+# Global hotkey for quake-mode terminal (works even when Ghostty isn't focused)
+keybind = global:ctrl+grave_accent=toggle_quick_terminal
+
+# Standard keybinds
+keybind = cmd+t=new_tab
+keybind = cmd+w=close_surface
+keybind = cmd+shift+left_bracket=previous_tab
+keybind = cmd+shift+right_bracket=next_tab
+
+# Splits
+keybind = cmd+d=new_split:right
+keybind = cmd+shift+d=new_split:down
+keybind = cmd+alt+left=goto_split:left
+keybind = cmd+alt+right=goto_split:right
+keybind = cmd+alt+up=goto_split:top
+keybind = cmd+alt+down=goto_split:bottom
+
+# Copy/paste
+keybind = cmd+c=copy_to_clipboard
+keybind = cmd+v=paste_from_clipboard
+
+# Font size
+keybind = cmd+plus=increase_font_size:1
+keybind = cmd+minus=decrease_font_size:1
+keybind = cmd+zero=reset_font_size
