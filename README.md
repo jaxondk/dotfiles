@@ -33,27 +33,37 @@ If stow reports conflicts, you have existing files where it wants to create syml
 
 ## Usage
 
-**Stow all packages:**
-```bash
-./stow-all.sh
-```
+**Stow** = create symlinks (activate a package)
 
-**Stow a single package:**
+**Unstow** = remove symlinks (deactivate a package)
+
+**Restow** = remove then recreate symlinks (useful after renaming/moving files)
+
 ```bash
+# Stow all packages
+./stow-all.sh
+
+# Stow a single package
 cd ~/dotfiles
 stow zsh
-```
 
-**Unstow (remove symlinks):**
-```bash
+# Unstow (remove symlinks)
 stow -D zsh        # single package
 stow -D */         # all packages
-```
 
-**Restow (refresh symlinks after changes):**
-```bash
+# Restow (refresh symlinks)
 stow -R zsh
 ```
+
+### When to use each
+
+**Stow**: Setting up a new machine, or adding a new package to the repo.
+
+**Unstow**: Removing a package from the repo, or temporarily disabling a config.
+
+**Restow**: After renaming or moving files within a package.
+
+In practice, you'll mostly just run `./stow-all.sh` once on a new machine, then edit configs directly (symlinks mean edits go straight to the repo) and commit/push. You rarely need to re-run stow unless adding a new package or restructuring files.
 
 ## Adding New Configs
 
