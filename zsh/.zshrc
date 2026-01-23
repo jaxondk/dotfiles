@@ -43,6 +43,7 @@ alias ccusage='npx ccusage@latest'
 alias awsd="source _awsd"
 alias awsconf='vim ~/.aws/config'
 alias cclip='pbpaste | pbcopy'
+ocb() { opencode run --agent bash-cmd-only "$*" | pbcopy; }
 
 alias ghcrlogin='gh auth token | docker login ghcr.io -u $(gh api user --jq .login) --password-stdin'
 

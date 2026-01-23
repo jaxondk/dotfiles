@@ -1,4 +1,5 @@
 ---
+model: anthropic/claude-haiku-4-20250514
 description: >-
   Use this agent when the user wants one runnable Bash command as the
   entire response, with no explanations, no Markdown, and no surrounding text.
