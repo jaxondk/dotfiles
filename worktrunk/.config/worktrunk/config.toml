@@ -1,43 +1,6 @@
 # Worktrunk User Configuration
 
 [post-create]
-# Copy non-git-committed files and folders for firecrew worktrees
-firecrew-env = """
-python3 -c '
-import json, sys, shutil
-from pathlib import Path
-
-ctx = json.load(sys.stdin)
-repo = ctx.get("repo", "")
-main_wt = ctx.get("repo_path", "")
-
-# Only run for firecrew repo
-if repo != "firecrew" or not main_wt:
-    sys.exit(0)
-
-# Files and folders to copy (relative to repo root)
-paths = [
-    ".env.backend",
-    ".env",
-    ".env.operator",
-    "services/firecrew-api/.env",
-    "backlog",
-]
-
-for p in paths:
-    src = Path(main_wt) / p
-    dst = Path(p)
-    if src.exists():
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        if src.is_dir():
-            shutil.copytree(src, dst, dirs_exist_ok=True)
-            print(f"  Copied {p}/")
-        else:
-            shutil.copy2(src, dst)
-            print(f"  Copied {p}")
-'
-"""
-
 # Set up beads environment for firecrew worktrees
 firecrew-beads = """
 python3 -c '
@@ -55,9 +18,4 @@ print("  Created .envrc for beads")
 subprocess.run(["direnv", "allow"], check=False)
 print("  Allowed direnv")
 '
-"""
-
-# Trust mise configuration for new worktrees
-mise-trust = """
-mise trust 2>/dev/null && echo "  Trusted mise config" || true
 """
