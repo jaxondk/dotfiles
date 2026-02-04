@@ -8,3 +8,5 @@ name = Jaxon Keeler
 	process = git-lfs filter-process
 	required = true
 
+[rerere]
+	enabled = true
