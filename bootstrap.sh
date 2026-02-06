@@ -81,10 +81,25 @@ set_default_shell() {
   fi
 }
 
+# Setup SSH key for GitHub
+setup_ssh_key() {
+  if [[ ! -f ~/.ssh/id_ed25519 ]]; then
+    echo "==> Generating SSH key..."
+    mkdir -p ~/.ssh
+    ssh-keygen -t ed25519 -C "$USER@$(hostname)" -N "" -f ~/.ssh/id_ed25519
+  fi
+  echo ""
+  echo "==> Add this SSH key to GitHub: https://github.com/settings/ssh/new"
+  echo ""
+  cat ~/.ssh/id_ed25519.pub
+  echo ""
+}
+
 # Main
 install_packages
 stow_dotfiles
 set_default_shell
+setup_ssh_key
 
 echo ""
 echo "==> Bootstrap complete!"
