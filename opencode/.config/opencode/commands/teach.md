@@ -26,6 +26,8 @@ First, gather context:
 
 ---
 
+The context above contains all the information you need - do not run additional git commands to gather more context.
+
 Now teach me about these changes. Help me understand why these design choices were likely made.
 
 Most often, it's best to start from first principles and ELI5 - what are the fundamental problems represented here and how do the changes (and any frameworks involved) help address them?
