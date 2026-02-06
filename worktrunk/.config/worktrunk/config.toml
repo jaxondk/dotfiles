@@ -19,3 +19,41 @@ subprocess.run(["direnv", "allow"], check=False)
 print("  Allowed direnv")
 '
 """
+
+[projects]
+
+[projects."github.com/Twenty-IO/firecrew"]
+approved-commands = [
+    """
+python3 -c '
+import json, sys, shutil
+from pathlib import Path
+
+ctx = json.load(sys.stdin)
+main_wt = ctx.get("repo_path", "")
+
+if not main_wt:
+    sys.exit(0)
+
+# Files and folders to copy (relative to repo root)
+paths = [
+    ".env.backend",
+]
+
+for p in paths:
+    src = Path(main_wt) / p
+    dst = Path(p)
+    if src.exists():
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if src.is_dir():
+            shutil.copytree(src, dst, dirs_exist_ok=True)
+            print(f"  Copied {p}/")
+        else:
+            shutil.copy2(src, dst)
+            print(f"  Copied {p}")
+'
+""",
+    """
+mise trust 2>/dev/null && echo "  Trusted mise config" || true
+""",
+]

@@ -74,6 +74,9 @@ export PATH=$PATH:/usr/local/go/bin
 export PATH=$PATH:$GOPATH/bin
 export PATH=$PATH:/Users/jaxon.keeler/go/bin
 
+### Bun
+export PATH="$HOME/.bun/bin:$PATH"
+
 
 #############
 # Stuff that's supposed to be at the end?
