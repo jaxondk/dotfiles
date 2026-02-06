@@ -1,5 +1,10 @@
 # . "$HOME/.local/bin/env"
 
+# Fix for Ghostty terminal on systems without its terminfo
+if [[ "$TERM" == "xterm-ghostty" ]] && ! infocmp xterm-ghostty &>/dev/null; then
+  export TERM=xterm-256color
+fi
+
 # Performance-optimized completion system
 autoload -Uz compinit
 if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
@@ -8,9 +13,12 @@ else
   compinit -C
 fi
 
-# zsh autosuggest
-source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-
+# zsh autosuggest (platform-specific)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+elif [[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+  source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+fi
 
 # History configuration
 HISTFILE=~/.zsh_history
@@ -20,9 +28,14 @@ setopt HIST_IGNORE_DUPS SHARE_HISTORY
 
 # MISE let's let the mise tools win
 
-# Antidote plugin management
-source $(brew --prefix)/share/antidote/antidote.zsh
-antidote load ~/.zsh_plugins.txt
+# Antidote plugin management (platform-specific)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  source $(brew --prefix)/share/antidote/antidote.zsh
+  antidote load ~/.zsh_plugins.txt
+elif [[ -f /usr/share/zsh-antidote/antidote.zsh ]]; then
+  source /usr/share/zsh-antidote/antidote.zsh
+  antidote load ~/.zsh_plugins.txt
+fi
 
 # Applies vim keys when you  hit escape on command line
 # set -o vi
