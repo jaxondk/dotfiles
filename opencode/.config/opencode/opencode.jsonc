@@ -3,6 +3,13 @@
   "compaction": {
     "auto": false
   },
+  "mcp": {
+    "linear": {
+      "type": "local",
+      "command": ["npx", "-y", "mcp-remote", "https://mcp.linear.app/sse"],
+      "enabled": true
+    }
+  },
   "plugin": [
     "opencode-openai-codex-auth"
   ],
