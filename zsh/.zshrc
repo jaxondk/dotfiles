@@ -61,6 +61,7 @@ ocb() { opencode run --agent bash-cmd-only "$*" | pbcopy; }
 alias ghcrlogin='gh auth token | docker login ghcr.io -u $(gh api user --jq .login) --password-stdin'
 
 alias nload='TERM=xterm-256color nload'
+alias o='opencode'
 
 
 #############
