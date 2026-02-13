@@ -11,7 +11,8 @@
     }
   },
   "plugin": [
-    "opencode-openai-codex-auth"
+    "opencode-openai-codex-auth",
+    "./plugin/kdco-notify.ts"
   ],
   "provider": {
     "openai": {
