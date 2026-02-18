@@ -88,3 +88,31 @@ cd ~/dotfiles && stow foo
 - `starship` - shell prompt
 - `worktrunk` - git worktree manager
 - `zsh` - shell config
+
+### opencode
+
+After stowing, install plugin dependencies:
+
+```bash
+cd ~/.config/opencode && bun install
+```
+
+#### Notifications (Slack)
+
+The opencode package includes the [opencode-notify](https://github.com/kdcokenny/opencode-notify) plugin with Slack webhook support. Native macOS notifications are disabled by default in favor of Slack (which covers both desktop and mobile).
+
+To set up Slack notifications:
+
+1. Go to https://api.slack.com/apps and click "Create New App" > "From scratch"
+2. Name it something like "OpenCode Notify" and pick your workspace
+3. Go to "Incoming Webhooks" in the sidebar and toggle it on
+4. Click "Add New Webhook to Workspace" and pick the channel or DM you want notifications in
+5. Copy the webhook URL (looks like `https://hooks.slack.com/services/T.../B.../xxx`)
+6. Create your config from the example:
+   ```bash
+   cp ~/.config/opencode/kdco-notify.example.json ~/.config/opencode/kdco-notify.json
+   ```
+7. Edit `~/.config/opencode/kdco-notify.json` and replace the placeholder with your webhook URL
+8. Restart OpenCode
+
+The real config is gitignored since it contains the webhook secret. To re-enable native macOS notifications alongside Slack, set `"native": true` in the config.

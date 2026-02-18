@@ -27,7 +27,16 @@ import detectTerminal from "detect-terminal"
 import notifier from "node-notifier"
 import type { OpencodeClient } from "./kdco-primitives/types"
 
+interface SlackConfig {
+	/** Enable Slack notifications (default: false) */
+	enabled: boolean
+	/** Slack incoming webhook URL */
+	webhookUrl: string
+}
+
 interface NotifyConfig {
+	/** Enable native OS notifications (default: true) */
+	native: boolean
 	/** Notify for child/sub-session events (default: false) */
 	notifyChildSessions: boolean
 	/** Sound configuration per event type */
@@ -45,6 +54,8 @@ interface NotifyConfig {
 	}
 	/** Override terminal detection (optional) */
 	terminal?: string
+	/** Slack webhook configuration */
+	slack?: SlackConfig
 }
 
 interface TerminalInfo {
@@ -54,6 +65,7 @@ interface TerminalInfo {
 }
 
 const DEFAULT_CONFIG: NotifyConfig = {
+	native: true,
 	notifyChildSessions: false,
 	sounds: {
 		idle: "Glass",
@@ -106,6 +118,7 @@ async function loadConfig(): Promise<NotifyConfig> {
 				...DEFAULT_CONFIG.quietHours,
 				...userConfig.quietHours,
 			},
+			slack: userConfig.slack,
 		}
 	} catch {
 		// Config doesn't exist or is invalid, use defaults
@@ -224,7 +237,9 @@ interface NotificationOptions {
 	terminalInfo: TerminalInfo
 }
 
-function sendNotification(options: NotificationOptions): void {
+function sendNotification(config: NotifyConfig, options: NotificationOptions): void {
+	if (!config.native) return
+
 	const { title, message, sound, terminalInfo } = options
 
 	// Base notification options
@@ -240,6 +255,64 @@ function sendNotification(options: NotificationOptions): void {
 	}
 
 	notifier.notify(notifyOptions)
+}
+
+// ==========================================
+// SLACK NOTIFICATIONS
+// ==========================================
+
+const SLACK_EVENT_EMOJI: Record<string, string> = {
+	idle: ":white_check_mark:",
+	error: ":rotating_light:",
+	permission: ":raised_hand:",
+	question: ":question:",
+}
+
+const SLACK_EVENT_COLOR: Record<string, string> = {
+	idle: "#36a64f",
+	error: "#cc0000",
+	permission: "#ff9900",
+	question: "#3399ff",
+}
+
+async function sendSlackNotification(
+	config: NotifyConfig,
+	eventType: string,
+	title: string,
+	message: string,
+): Promise<void> {
+	if (!config.slack?.enabled || !config.slack?.webhookUrl) return
+
+	const emoji = SLACK_EVENT_EMOJI[eventType] || ":bell:"
+	const color = SLACK_EVENT_COLOR[eventType] || "#808080"
+
+	const payload = {
+		attachments: [
+			{
+				color,
+				blocks: [
+					{
+						type: "section",
+						text: {
+							type: "mrkdwn",
+							text: `${emoji} *${title}*\n${message}`,
+						},
+					},
+				],
+				fallback: `${title}: ${message}`,
+			},
+		],
+	}
+
+	try {
+		await fetch(config.slack.webhookUrl, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(payload),
+		})
+	} catch {
+		// Silently fail - don't let Slack issues break native notifications
+	}
 }
 
 // ==========================================
@@ -275,12 +348,13 @@ async function handleSessionIdle(
 		// Use default title
 	}
 
-	sendNotification({
+	sendNotification(config, {
 		title: "Ready for review",
 		message: sessionTitle,
 		sound: config.sounds.idle,
 		terminalInfo,
 	})
+	await sendSlackNotification(config, "idle", "Ready for review", sessionTitle)
 }
 
 async function handleSessionError(
@@ -304,12 +378,13 @@ async function handleSessionError(
 
 	const errorMessage = error?.slice(0, 100) || "Something went wrong"
 
-	sendNotification({
+	sendNotification(config, {
 		title: "Something went wrong",
 		message: errorMessage,
 		sound: config.sounds.error,
 		terminalInfo,
 	})
+	await sendSlackNotification(config, "error", "Something went wrong", errorMessage)
 }
 
 async function handlePermissionUpdated(
@@ -325,12 +400,13 @@ async function handlePermissionUpdated(
 	// Check if terminal is focused (suppress notification if user is already looking)
 	if (await isTerminalFocused(terminalInfo)) return
 
-	sendNotification({
+	sendNotification(config, {
 		title: "Waiting for you",
 		message: "OpenCode needs your input",
 		sound: config.sounds.permission,
 		terminalInfo,
 	})
+	await sendSlackNotification(config, "permission", "Waiting for you", "OpenCode needs your input")
 }
 
 async function handleQuestionAsked(
@@ -342,12 +418,13 @@ async function handleQuestionAsked(
 
 	const sound = config.sounds.question ?? config.sounds.permission
 
-	sendNotification({
+	sendNotification(config, {
 		title: "Question for you",
 		message: "OpenCode needs your input",
 		sound,
 		terminalInfo,
 	})
+	await sendSlackNotification(config, "question", "Question for you", "OpenCode needs your input")
 }
 
 // ==========================================

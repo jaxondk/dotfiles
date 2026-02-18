@@ -1,0 +1,7 @@
+{
+  "native": false,
+  "slack": {
+    "enabled": true,
+    "webhookUrl": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+  }
+}
