@@ -1,6 +1,10 @@
 # Worktrunk User Configuration
 
 [post-create]
+# Track the new branch with Graphite
+graphite-track = """
+gt track || true
+"""
 # Set up beads environment for firecrew worktrees
 firecrew-beads = """
 python3 -c '
