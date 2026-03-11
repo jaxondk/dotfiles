@@ -212,3 +212,21 @@ critique() {
   CRITIQUE_WORKER_URL="https://open-inspect-critique-twenty.xx-agents.workers.dev" \
     command critique "$@"
 }
+
+# Wrapper to route opencode --share to our own backend instead of opncd.ai.
+# NOTE: OPENCODE_CONFIG_CONTENT merges into the full config. If you need to set
+# other config via this env var, merge the JSON objects together rather than
+# adding a second OPENCODE_CONFIG_CONTENT assignment.
+opencode() {
+  local md=1
+  local args=()
+  for arg in "$@"; do
+    case "$arg" in
+      --no-md) md=0 ;;
+      *) args+=("$arg") ;;
+    esac
+  done
+  OPENCODE_EXPERIMENTAL_MARKDOWN="$md" \
+  OPENCODE_CONFIG_CONTENT='{"enterprise":{"url":"https://YOUR_SHARE_BACKEND_URL"}}' \
+    command opencode "${args[@]}"
+}
