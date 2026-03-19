@@ -54,11 +54,21 @@ gt() {
   local -a removed_dirs
   local -a skipped
   local wt_dir wt_status
+  local current_root
+  current_root=$(git rev-parse --show-toplevel 2>/dev/null)
 
   for branch in "${branches[@]}"; do
     wt_dir="${worktree_paths[$branch]}"
     if [[ -z "$wt_dir" ]]; then
       echo "  $branch: no worktree found (already removed?), skipping"
+      continue
+    fi
+
+    # Never delete the current or primary worktree
+    if [[ -n "$current_root" && "$wt_dir" == "$current_root" ]] || [[ -d "$wt_dir/.git" ]]; then
+      echo "  $branch: worktree is primary/current, skipping"
+      echo "    ($wt_dir)"
+      skipped+=("$branch")
       continue
     fi
 
@@ -90,7 +100,7 @@ gt() {
 
   if [[ ${#skipped[@]} -gt 0 ]]; then
     echo ""
-    echo "Skipped ${#skipped[@]} dirty worktree(s): ${skipped[*]}"
+    echo "Skipped ${#skipped[@]} worktree(s): ${skipped[*]}"
     echo "Inspect them manually and re-run gt sync, or remove with:"
     echo "  rm -rf <path> && git worktree prune"
   fi
@@ -106,6 +116,10 @@ gt() {
 _gt_list_stale_branches() {
   local -a stale_branches
   local line br
+  local default_branch current_branch
+  default_branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+  default_branch=${default_branch#origin/}
+  current_branch=$(git branch --show-current 2>/dev/null)
 
   # `git branch -vv` marks gone upstreams as "[origin/...: gone]"
   while IFS= read -r line; do
@@ -129,6 +143,8 @@ _gt_list_stale_branches() {
 
   local -a prunable
   for br in "${stale_branches[@]}"; do
+    [[ -n "$default_branch" && "$br" == "$default_branch" ]] && continue
+    [[ -n "$current_branch" && "$br" == "$current_branch" ]] && continue
     [[ -n "${wt_checked_out[$br]:-}" ]] && continue
     prunable+=("$br")
   done
@@ -147,6 +163,10 @@ _gt_list_stale_branches() {
 _gt_prune_local() {
   local -a stale_branches
   local line br
+  local default_branch current_branch
+  default_branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+  default_branch=${default_branch#origin/}
+  current_branch=$(git branch --show-current 2>/dev/null)
 
   while IFS= read -r line; do
     br="${line#\* }"
@@ -165,6 +185,14 @@ _gt_prune_local() {
 
   local -a prunable skipped_wt
   for br in "${stale_branches[@]}"; do
+    if [[ -n "$default_branch" && "$br" == "$default_branch" ]]; then
+      skipped_wt+=("$br")
+      continue
+    fi
+    if [[ -n "$current_branch" && "$br" == "$current_branch" ]]; then
+      skipped_wt+=("$br")
+      continue
+    fi
     if [[ -n "${wt_checked_out[$br]:-}" ]]; then
       skipped_wt+=("$br")
       continue
