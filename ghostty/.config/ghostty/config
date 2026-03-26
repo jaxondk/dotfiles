@@ -18,7 +18,7 @@ cursor-style-blink = false
 
 # Shell integration
 shell-integration = zsh
-shell-integration-features = cursor,sudo,title
+shell-integration-features = cursor,sudo,title,ssh-terminfo,ssh-env
 
 # Scrollback
 scrollback-limit = 10000000

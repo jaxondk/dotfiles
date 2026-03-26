@@ -103,6 +103,9 @@ if mise direnv activate >/dev/null 2>&1; then
   eval "$(mise activate zsh)"  # or zsh/fish depending on your shell
 fi
 
+# add cargo installed packages to PATH
+export PATH="$HOME/.cargo/bin:$PATH"
+
 # direnv hook for per-directory environment variables
 eval "$(direnv hook zsh)"
 

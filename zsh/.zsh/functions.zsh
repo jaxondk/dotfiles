@@ -52,9 +52,15 @@ gt() {
   done < <(git worktree list --porcelain)
 
   local -a removed_dirs
+  local -a candidate_branches
+  local -a candidate_dirs
   local -a skipped
-  local wt_dir wt_status
-  local current_root
+  local wt_dir wt_status ahead_count
+
+  # Identify the primary worktree (first entry in porcelain output)
+  # and the current worktree we're running from -- never delete either
+  local primary_wt current_root
+  primary_wt=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
   current_root=$(git rev-parse --show-toplevel 2>/dev/null)
 
   for branch in "${branches[@]}"; do
@@ -64,8 +70,10 @@ gt() {
       continue
     fi
 
-    # Never delete the current or primary worktree
-    if [[ -n "$current_root" && "$wt_dir" == "$current_root" ]] || [[ -d "$wt_dir/.git" ]]; then
+    # Never delete the primary or current worktree
+    if [[ "$wt_dir" == "$primary_wt" ]] || \
+       [[ -n "$current_root" && "$wt_dir" == "$current_root" ]] || \
+       [[ -d "$wt_dir/.git" ]]; then
       echo "  $branch: worktree is primary/current, skipping"
       echo "    ($wt_dir)"
       skipped+=("$branch")
@@ -82,20 +90,57 @@ gt() {
       continue
     fi
 
-    echo "  $branch: clean, removing worktree at $wt_dir"
-    /bin/rm -rf "$wt_dir"
-    removed_dirs+=("$wt_dir")
+    # Check for unpushed commits (local ahead of upstream)
+    ahead_count=$(git rev-list --count "${branch}@{upstream}..${branch}" 2>/dev/null)
+    if [[ -n "$ahead_count" && "$ahead_count" -gt 0 ]]; then
+      echo "  $branch: has $ahead_count unpushed commit(s), skipping"
+      echo "    ($wt_dir)"
+      skipped+=("$branch")
+      continue
+    fi
 
-    # Also delete the local branch since the PR is merged/closed
-    git branch -D "$branch" 2>/dev/null && \
-      echo "    deleted branch $branch" || \
-      echo "    note: could not delete branch $branch"
+    echo "  $branch: clean, queued for removal"
+    candidate_branches+=("$branch")
+    candidate_dirs+=("$wt_dir")
   done
+
+  if [[ ${#candidate_dirs[@]} -gt 0 ]]; then
+    echo ""
+    echo "Ready to remove ${#candidate_dirs[@]} worktree(s):"
+    local i
+    for i in {1..${#candidate_dirs[@]}}; do
+      echo "  ${candidate_branches[$i]} -> ${candidate_dirs[$i]}"
+    done
+    echo ""
+    printf "Delete these worktrees now? [y/N] "
+    local reply
+    read -r reply
+    if [[ "$reply" == "y" || "$reply" == "Y" ]]; then
+      for i in {1..${#candidate_dirs[@]}}; do
+        # Sync docs/scratch before removal
+        _gt_sync_scratch "${candidate_dirs[$i]}" "${candidate_branches[$i]}" "$primary_wt"
+        /bin/rm -rf "${candidate_dirs[$i]}"
+        removed_dirs+=("${candidate_dirs[$i]}")
+      done
+    else
+      echo "Skipped removal."
+    fi
+  fi
 
   if [[ ${#removed_dirs[@]} -gt 0 ]]; then
     git worktree prune
     echo ""
     echo "Pruned worktrees. Removed ${#removed_dirs[@]} worktree(s)."
+
+    # Delete branches after prune (worktree ref locks are gone now).
+    # We already verified no unpushed commits, so -D is safe as fallback
+    # for squash-merged branches that git doesn't recognize as merged.
+    for i in {1..${#candidate_branches[@]}}; do
+      [[ " ${removed_dirs[*]} " == *" ${candidate_dirs[$i]} "* ]] || continue
+      git branch -d "${candidate_branches[$i]}" 2>/dev/null || \
+        git branch -D "${candidate_branches[$i]}" 2>/dev/null
+      echo "  deleted branch ${candidate_branches[$i]}"
+    done
   fi
 
   if [[ ${#skipped[@]} -gt 0 ]]; then
@@ -109,6 +154,58 @@ gt() {
   _gt_list_stale_branches
 
   return $gt_exit
+}
+
+# Sync docs/scratch files from a worktree to the primary worktree before removal.
+# Files that are new or differ from the primary get copied into docs/scratch/<worktree_name>/.
+# Usage: _gt_sync_scratch <worktree_dir> <branch_name> <primary_worktree_dir>
+_gt_sync_scratch() {
+  local src_wt="$1" branch="$2" primary="$3"
+  local wt_name="${src_wt:t}"
+  local src_scratch="$src_wt/docs/scratch"
+  local dst_scratch="$primary/docs/scratch"
+
+  # Nothing to sync if the worktree has no docs/scratch
+  [[ -d "$src_scratch" ]] || return 0
+
+  local -a to_sync
+  local rel_file src_file dst_file
+
+  # Find all files in the worktree's docs/scratch
+  while IFS= read -r src_file; do
+    rel_file="${src_file#$src_scratch/}"
+    dst_file="$dst_scratch/$rel_file"
+
+    if [[ ! -f "$dst_file" ]]; then
+      # File doesn't exist in primary
+      to_sync+=("$rel_file")
+    elif ! diff -q "$src_file" "$dst_file" >/dev/null 2>&1; then
+      # File exists but differs
+      to_sync+=("$rel_file")
+    fi
+  done < <(find "$src_scratch" -type f 2>/dev/null)
+
+  [[ ${#to_sync[@]} -gt 0 ]] || return 0
+
+  echo ""
+  echo "  docs/scratch files in $wt_name that are new/different from primary:"
+  for rel_file in "${to_sync[@]}"; do
+    echo "    $rel_file"
+  done
+  printf "  Copy these to docs/scratch/%s/ in primary worktree? [Y/n] " "$wt_name"
+  local scratch_reply
+  read -r scratch_reply
+  if [[ "$scratch_reply" == "n" || "$scratch_reply" == "N" ]]; then
+    echo "  Skipped scratch sync for $branch."
+    return 0
+  fi
+
+  local dest_dir="$dst_scratch/$wt_name"
+  for rel_file in "${to_sync[@]}"; do
+    /bin/mkdir -p "$dest_dir/${rel_file:h}"
+    /bin/cp "$src_scratch/$rel_file" "$dest_dir/$rel_file"
+  done
+  echo "  Copied ${#to_sync[@]} file(s) to $dest_dir/"
 }
 
 # List local branches whose remote tracking branch has been deleted.
