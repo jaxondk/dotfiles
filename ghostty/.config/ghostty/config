@@ -5,7 +5,7 @@ font-family = "JetBrains Mono"
 font-size = 14
 
 # Theme - uses built-in themes, run `ghostty +list-themes` to see all
-theme = dark:Catppuccin Mocha,light:Catppuccin Latte
+theme = Catppuccin Mocha
 
 # Window
 window-padding-x = 8
