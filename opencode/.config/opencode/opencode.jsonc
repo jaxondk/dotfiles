@@ -13,6 +13,7 @@
   },
   "plugin": [
     "opencode-openai-codex-auth",
+    "opencode-claude-auth",
     "./plugin/kdco-notify.ts"
   ],
   "provider": {
