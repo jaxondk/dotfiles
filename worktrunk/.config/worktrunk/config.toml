@@ -1,75 +1,8 @@
 # Worktrunk User Configuration
+#
+# Personal hooks that apply to ALL repositories.
+# Project-specific hooks belong in each repo's .config/wt.toml.
 
 [post-create]
 # Track the new branch with Graphite
-graphite-track = """
-gt track || true
-"""
-# Allow direnv in the new worktree
-direnv-allow = """
-direnv allow || true
-"""
-
-[projects]
-
-[projects."github.com/Twenty-IO/firecrew"]
-approved-commands = ["""
-python3 -c '
-import json, sys, shutil
-from pathlib import Path
-
-ctx = json.load(sys.stdin)
-main_wt = ctx.get("repo_path", "")
-
-if not main_wt:
-    sys.exit(0)
-
-# Files and folders to copy (relative to repo root)
-paths = [
-    ".env.backend",
-]
-
-for p in paths:
-    src = Path(main_wt) / p
-    dst = Path(p)
-    if src.exists():
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        if src.is_dir():
-            shutil.copytree(src, dst, dirs_exist_ok=True)
-            print(f"  Copied {p}/")
-        else:
-            shutil.copy2(src, dst)
-            print(f"  Copied {p}")
-'
-""", """
-mise trust 2>/dev/null && echo "  Trusted mise config" || true
-""", """
-python3 -c '
-import json, sys, shutil
-from pathlib import Path
-
-ctx = json.load(sys.stdin)
-main_wt = ctx.get("repo_path", "")
-
-if not main_wt:
-    sys.exit(0)
-
-# Files and folders to copy (relative to repo root)
-paths = [
-    ".env.backend",
-    ".envrc",
-]
-
-for p in paths:
-    src = Path(main_wt) / p
-    dst = Path(p)
-    if src.exists():
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        if src.is_dir():
-            shutil.copytree(src, dst, dirs_exist_ok=True)
-            print(f"  Copied {p}/")
-        else:
-            shutil.copy2(src, dst)
-            print(f"  Copied {p}")
-'
-"""]
+graphite-track = "gt track || true"
