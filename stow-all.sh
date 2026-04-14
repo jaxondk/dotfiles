@@ -8,6 +8,7 @@ cd "$script_dir"
 mapfile -t packages < <(find . -maxdepth 1 -mindepth 1 -type d \
   ! -name '.git' \
   ! -name '.github' \
+  ! -name 'agentic' \
   -exec basename {} \; | sort)
 
 if [ ${#packages[@]} -eq 0 ]; then
