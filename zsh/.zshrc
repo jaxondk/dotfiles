@@ -33,7 +33,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   source $(brew --prefix)/share/antidote/antidote.zsh
   antidote load ~/.zsh_plugins.txt
 elif [[ -f /usr/share/zsh-antidote/antidote.zsh ]]; then
-  source /usr/share/zsh-antidote/antidote.zsh
+  source $(brew --prefix)/opt/antidote/share/antidote/antidote.zsh
   antidote load ~/.zsh_plugins.txt
 fi
 

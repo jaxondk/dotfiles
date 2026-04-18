@@ -16,6 +16,15 @@ When you edit `~/.zshrc`, you're actually editing the file in this repo.
 
 ## Setup (New Machine)
 
+You'll need to install any tools that are being used / managed that you haven't already installed. For example:
+
+```bash
+brew install starship antidote nvim worktrunk opencode
+```
+
+Additionally, you need to install stow, which is used for symlinking all of these dotfiles.
+
+
 ```bash
 # Install stow
 brew install stow   # macOS
