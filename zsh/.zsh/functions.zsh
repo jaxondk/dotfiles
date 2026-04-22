@@ -55,13 +55,35 @@ gt() {
   local -a candidate_branches
   local -a candidate_dirs
   local -a skipped
-  local wt_dir wt_status ahead_count
+  local wt_dir wt_status branch_tree landed_commit
 
   # Identify the primary worktree (first entry in porcelain output)
   # and the current worktree we're running from -- never delete either
   local primary_wt current_root
   primary_wt=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
   current_root=$(git rev-parse --show-toplevel 2>/dev/null)
+
+  # Build a map of tree SHA -> trunk commit SHA using first-parent trunk
+  # history. This lets us detect branches whose exact content has already
+  # landed on trunk even if Graphite rebased, squashed, or rewrote commits.
+  local trunk_ref
+  trunk_ref=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+  if [[ -z "$trunk_ref" ]]; then
+    if git show-ref --verify --quiet refs/remotes/origin/develop; then
+      trunk_ref="origin/develop"
+    elif git show-ref --verify --quiet refs/remotes/origin/main; then
+      trunk_ref="origin/main"
+    fi
+  fi
+
+  local -A trunk_tree_to_commit
+  local trunk_commit trunk_tree
+  if [[ -n "$trunk_ref" ]]; then
+    while IFS=' ' read -r trunk_commit trunk_tree; do
+      [[ -n "$trunk_tree" ]] || continue
+      trunk_tree_to_commit[$trunk_tree]="$trunk_commit"
+    done < <(git log --first-parent --format='%H %T' "$trunk_ref")
+  fi
 
   for branch in "${branches[@]}"; do
     wt_dir="${worktree_paths[$branch]}"
@@ -90,16 +112,26 @@ gt() {
       continue
     fi
 
-    # Check for unpushed commits (local ahead of upstream)
-    ahead_count=$(git rev-list --count "${branch}@{upstream}..${branch}" 2>/dev/null)
-    if [[ -n "$ahead_count" && "$ahead_count" -gt 0 ]]; then
-      echo "  $branch: has $ahead_count unpushed commit(s), skipping"
+    # Check whether this branch's exact content already exists on trunk.
+    # Tree equality is the right safety check for Graphite merge queues,
+    # where landed commits may have different SHAs due to rebases/squashes.
+    if [[ -z "$trunk_ref" || ${#trunk_tree_to_commit[@]} -eq 0 ]]; then
+      echo "  $branch: could not determine trunk history, skipping"
+      echo "    (expected origin/HEAD, origin/develop, or origin/main)"
+      skipped+=("$branch")
+      continue
+    fi
+
+    branch_tree=$(git rev-parse "${branch}^{tree}" 2>/dev/null)
+    landed_commit="${trunk_tree_to_commit[$branch_tree]:-}"
+    if [[ -z "$branch_tree" || -z "$landed_commit" ]]; then
+      echo "  $branch: branch content not found on $trunk_ref, skipping"
       echo "    ($wt_dir)"
       skipped+=("$branch")
       continue
     fi
 
-    echo "  $branch: clean, queued for removal"
+    echo "  $branch: landed on $trunk_ref at $landed_commit, queued for removal"
     candidate_branches+=("$branch")
     candidate_dirs+=("$wt_dir")
   done
@@ -133,8 +165,9 @@ gt() {
     echo "Pruned worktrees. Removed ${#removed_dirs[@]} worktree(s)."
 
     # Delete branches after prune (worktree ref locks are gone now).
-    # We already verified no unpushed commits, so -D is safe as fallback
-    # for squash-merged branches that git doesn't recognize as merged.
+    # We already verified the branch head tree exists on trunk, so -D is safe
+    # as fallback for Graphite/squash-rewritten history that git doesn't
+    # recognize as a normal merged branch topology.
     for i in {1..${#candidate_branches[@]}}; do
       [[ " ${removed_dirs[*]} " == *" ${candidate_dirs[$i]} "* ]] || continue
       git branch -d "${candidate_branches[$i]}" 2>/dev/null || \
@@ -157,30 +190,48 @@ gt() {
 }
 
 # Sync docs/scratch files from a worktree to the primary worktree before removal.
-# Files that are new or differ from the primary get copied into docs/scratch/<worktree_name>/.
+# Files whose content does not already exist anywhere under primary docs/scratch/
+# get copied into docs/scratch/<worktree_bucket>/.
 # Usage: _gt_sync_scratch <worktree_dir> <branch_name> <primary_worktree_dir>
 _gt_sync_scratch() {
   local src_wt="$1" branch="$2" primary="$3"
   local wt_name="${src_wt:t}"
+  local wt_bucket="$wt_name"
+  if [[ "$wt_name" == *.* ]]; then
+    wt_bucket="${wt_name#*.}"
+  fi
   local src_scratch="$src_wt/docs/scratch"
   local dst_scratch="$primary/docs/scratch"
 
   # Nothing to sync if the worktree has no docs/scratch
   [[ -d "$src_scratch" ]] || return 0
 
+  local -A existing_paths_by_hash
+  local existing_file existing_hash
+
+  # Index all existing scratch file content in the primary worktree so we can
+  # skip re-copying notes that were already preserved elsewhere.
+  while IFS= read -r existing_file; do
+    [[ "${existing_file:t}" == ".DS_Store" ]] && continue
+    existing_hash=$(git hash-object "$existing_file" 2>/dev/null)
+    [[ -n "$existing_hash" ]] || continue
+    existing_paths_by_hash[$existing_hash]="$existing_file"
+  done < <(find "$dst_scratch" -type f 2>/dev/null)
+
   local -a to_sync
-  local rel_file src_file dst_file
+  local rel_file src_file src_hash existing_path
 
   # Find all files in the worktree's docs/scratch
   while IFS= read -r src_file; do
+    [[ "${src_file:t}" == ".DS_Store" ]] && continue
     rel_file="${src_file#$src_scratch/}"
-    dst_file="$dst_scratch/$rel_file"
+    src_hash=$(git hash-object "$src_file" 2>/dev/null)
+    existing_path="${existing_paths_by_hash[$src_hash]:-}"
 
-    if [[ ! -f "$dst_file" ]]; then
-      # File doesn't exist in primary
+    if [[ -z "$src_hash" ]]; then
       to_sync+=("$rel_file")
-    elif ! diff -q "$src_file" "$dst_file" >/dev/null 2>&1; then
-      # File exists but differs
+    elif [[ -z "$existing_path" ]]; then
+      # This file's content does not exist anywhere in primary docs/scratch.
       to_sync+=("$rel_file")
     fi
   done < <(find "$src_scratch" -type f 2>/dev/null)
@@ -188,11 +239,11 @@ _gt_sync_scratch() {
   [[ ${#to_sync[@]} -gt 0 ]] || return 0
 
   echo ""
-  echo "  docs/scratch files in $wt_name that are new/different from primary:"
+  echo "  docs/scratch files in $wt_name whose content is not yet in primary:"
   for rel_file in "${to_sync[@]}"; do
     echo "    $rel_file"
   done
-  printf "  Copy these to docs/scratch/%s/ in primary worktree? [Y/n] " "$wt_name"
+  printf "  Copy these to docs/scratch/%s/ in primary worktree? [Y/n] " "$wt_bucket"
   local scratch_reply
   read -r scratch_reply
   if [[ "$scratch_reply" == "n" || "$scratch_reply" == "N" ]]; then
@@ -200,7 +251,7 @@ _gt_sync_scratch() {
     return 0
   fi
 
-  local dest_dir="$dst_scratch/$wt_name"
+  local dest_dir="$dst_scratch/$wt_bucket"
   for rel_file in "${to_sync[@]}"; do
     /bin/mkdir -p "$dest_dir/${rel_file:h}"
     /bin/cp "$src_scratch/$rel_file" "$dest_dir/$rel_file"
