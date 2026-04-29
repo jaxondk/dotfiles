@@ -1,9 +1,9 @@
 **/.claude/settings.local.json
 
-# Beads stealth mode: /Users/jaxon.keeler/src/firecrew/services/firecrew-api (added by bd init --stealth)
-/Users/jaxon.keeler/src/firecrew/services/firecrew-api/.beads/
-/Users/jaxon.keeler/src/firecrew/services/firecrew-api/.claude/settings.local.json
+# Beads stealth mode: /Users/jaxon.keeler/src/firecrew-ecosystem/firecrew/services/firecrew-api (added by bd init --stealth)
+/Users/jaxon.keeler/src/firecrew-ecosystem/firecrew/services/firecrew-api/.beads/
+/Users/jaxon.keeler/src/firecrew-ecosystem/firecrew/services/firecrew-api/.claude/settings.local.json
 
-# Beads stealth mode: /Users/jaxon.keeler/src/firecrew (added by bd init --stealth)
-/Users/jaxon.keeler/src/firecrew/.beads/
-/Users/jaxon.keeler/src/firecrew/.claude/settings.local.json
+# Beads stealth mode: /Users/jaxon.keeler/src/firecrew-ecosystem/firecrew (added by bd init --stealth)
+/Users/jaxon.keeler/src/firecrew-ecosystem/firecrew/.beads/
+/Users/jaxon.keeler/src/firecrew-ecosystem/firecrew/.claude/settings.local.json
