@@ -32,23 +32,25 @@ install_packages() {
     debian)
       echo "==> Installing packages via apt..."
       sudo apt update
-      sudo apt install -y stow zsh zsh-autosuggestions git curl
-      
-      # Install starship
+      sudo apt install -y stow zsh zsh-autosuggestions git curl direnv
+
+      # Install starship (apt version is often outdated)
       if ! command -v starship &>/dev/null; then
         echo "==> Installing Starship..."
         curl -sS https://starship.rs/install.sh | sudo sh -s -- -y
       fi
-      
+
       # Install neovim (apt version is often outdated, use appimage or snap)
       if ! command -v nvim &>/dev/null; then
         echo "==> Installing Neovim..."
         sudo snap install nvim --classic || sudo apt install -y neovim
       fi
-      
-      # Install direnv
-      if ! command -v direnv &>/dev/null; then
-        sudo apt install -y direnv
+
+      # Install antidote (apt's zsh-antidote ships only a CLI binary, not a
+      # sourceable antidote.zsh — clone upstream instead so .zshrc can load it)
+      if [[ ! -d "$HOME/.antidote" ]]; then
+        echo "==> Installing antidote..."
+        git clone --depth=1 https://github.com/mattmc3/antidote.git "$HOME/.antidote"
       fi
       ;;
     redhat)

@@ -32,8 +32,8 @@ setopt HIST_IGNORE_DUPS SHARE_HISTORY
 if [[ "$OSTYPE" == "darwin"* ]]; then
   source $(brew --prefix)/share/antidote/antidote.zsh
   antidote load ~/.zsh_plugins.txt
-elif [[ -f /usr/share/zsh-antidote/antidote.zsh ]]; then
-  source $(brew --prefix)/opt/antidote/share/antidote/antidote.zsh
+elif [[ -f ~/.antidote/antidote.zsh ]]; then
+  source ~/.antidote/antidote.zsh
   antidote load ~/.zsh_plugins.txt
 fi
 
