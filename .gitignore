@@ -5,3 +5,10 @@
 *.swp
 *.swo
 *~
+
+# Claude Code: ~/.claude is symlinked into this tree, so runtime state
+# (credentials, sessions, history, caches) lands here. Ignore everything
+# by default, then opt in to the config dirs we actually want to track.
+claude-code/.claude/*
+!claude-code/.claude/agents/
+!claude-code/.claude/skills/
