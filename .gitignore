@@ -12,3 +12,11 @@
 claude-code/.claude/*
 !claude-code/.claude/agents/
 !claude-code/.claude/skills/
+!claude-code/.claude/commands/
+!claude-code/.claude/plugins/
+!claude-code/.claude/scripts/
+!claude-code/.claude/mcp.json
+!claude-code/.claude/settings.json
+
+# Machine-local secrets / overrides (never track)
+.zshrc.local

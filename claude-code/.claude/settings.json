@@ -1,0 +1,17 @@
+{
+  "model": "claude-opus-4-7",
+  "enabledPlugins": {
+    "rust-analyzer-lsp@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "entire-skills": {
+      "source": {
+        "source": "github",
+        "repo": "entireio/skills"
+      }
+    }
+  },
+  "effortLevel": "medium",
+  "skipDangerousModePermissionPrompt": true,
+  "skipAutoPermissionPrompt": true
+}

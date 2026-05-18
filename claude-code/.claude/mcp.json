@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "kit-dev": {
+      "command": "uvx",
+      "args": ["--from", "cased-kit", "kit-dev-mcp"],
+      "env": {
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+      }
+    }
+  }
+}
