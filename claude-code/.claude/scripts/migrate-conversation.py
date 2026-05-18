@@ -1,30 +1,30 @@
 #!/usr/bin/env python3
 """Migrate one Claude Code conversation to a new project dir.
 
-Rewrites every `cwd` field in the session's jsonl (and any subagent jsonls)
-whose path no longer exists at /Users/jaxon.keeler/src/<X> but does exist at
-/Users/jaxon.keeler/src/firecrew-ecosystem/<X>, then relocates the conversation
-files into the project dir corresponding to the remapped primary cwd.
+Rewrites `cwd` metadata fields whose value equals the session's *primary*
+cwd (the top-level agent's starting working directory) to `--to`, then moves
+the conversation files into the project dir corresponding to that path.
+Lines where the agent genuinely worked in a different cwd (e.g. it cd'd into
+a subdir) are left untouched — the session keeps its real per-turn cwd
+history; only the "session home" identity changes.
 
 Usage:
-    migrate_conversation.py <session-jsonl-path> [--dry-run] [--apply]
+    migrate-conversation.py <session-jsonl> --to <NEW_CWD> [--from <OLD_CWD>] [--dry-run|--apply]
 
-By default runs in dry-run mode (prints planned actions, no changes).
-Pass --apply to perform the move.
+`--to` is an absolute filesystem path. If `--from` is omitted, the script
+uses the first cwd seen in the jsonl. Defaults to dry-run; pass --apply to
+perform the move.
 """
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import shutil
 import sys
 from pathlib import Path
 
 PROJECTS_ROOT = Path.home() / ".claude" / "projects"
-SRC_OLD = "/Users/jaxon.keeler/src/"
-SRC_NEW_PREFIX = "/Users/jaxon.keeler/src/firecrew-ecosystem/"
 
 
 def encode_cwd(cwd: str) -> str:
@@ -33,24 +33,6 @@ def encode_cwd(cwd: str) -> str:
     Both `/` and `.` are replaced with `-`.
     """
     return re.sub(r"[/.]", "-", cwd)
-
-
-def remap_cwd(cwd: str) -> str | None:
-    """Return remapped cwd, or None if no remap applies."""
-    if not cwd.startswith(SRC_OLD):
-        return None
-    rest = cwd[len(SRC_OLD):]
-    # Already under firecrew-ecosystem? nothing to do.
-    if rest.startswith("firecrew-ecosystem/") or rest == "firecrew-ecosystem":
-        return None
-    old_path = Path(cwd)
-    new_path = Path(SRC_NEW_PREFIX + rest)
-    if old_path.exists():
-        # Original still there; don't remap.
-        return None
-    if not new_path.exists():
-        return None
-    return str(new_path)
 
 
 def collect_cwds(jsonl_path: Path) -> list[str]:
@@ -69,8 +51,8 @@ def collect_cwds(jsonl_path: Path) -> list[str]:
     return cwds
 
 
-def rewrite_file(jsonl_path: Path, cwd_map: dict[str, str], dry_run: bool) -> int:
-    """Rewrite cwd fields in-place. Returns number of lines changed."""
+def rewrite_file(jsonl_path: Path, old_cwd: str, new_cwd: str, dry_run: bool) -> int:
+    """Rewrite cwd fields equal to old_cwd, replacing with new_cwd. Returns lines changed."""
     changed = 0
     new_lines: list[str] = []
     with jsonl_path.open() as f:
@@ -81,8 +63,8 @@ def rewrite_file(jsonl_path: Path, cwd_map: dict[str, str], dry_run: bool) -> in
                 new_lines.append(line)
                 continue
             cwd = obj.get("cwd")
-            if isinstance(cwd, str) and cwd in cwd_map:
-                obj["cwd"] = cwd_map[cwd]
+            if isinstance(cwd, str) and cwd == old_cwd and cwd != new_cwd:
+                obj["cwd"] = new_cwd
                 changed += 1
                 new_lines.append(json.dumps(obj, ensure_ascii=False, separators=(",", ":")) + "\n")
             else:
@@ -94,7 +76,7 @@ def rewrite_file(jsonl_path: Path, cwd_map: dict[str, str], dry_run: bool) -> in
     return changed
 
 
-def migrate(jsonl_path: Path, dry_run: bool) -> bool:
+def migrate(jsonl_path: Path, old_cwd: str | None, new_cwd: str, dry_run: bool) -> bool:
     if not jsonl_path.is_file():
         print(f"  ERROR: not a file: {jsonl_path}")
         return False
@@ -106,30 +88,22 @@ def migrate(jsonl_path: Path, dry_run: bool) -> bool:
     if not cwds:
         print(f"  skip: no cwd in {jsonl_path.name}")
         return False
-
-    primary_cwd = cwds[0]
-    cwd_map: dict[str, str] = {}
-    for c in cwds:
-        new = remap_cwd(c)
-        if new and new != c:
-            cwd_map[c] = new
-
-    if not cwd_map:
-        print(f"  skip: no remappable cwds in {jsonl_path.name} (cwds: {cwds})")
+    if old_cwd is None:
+        old_cwd = cwds[0]
+        print(f"  inferred --from (primary cwd): {old_cwd}")
+    elif old_cwd not in cwds:
+        print(f"  ERROR: --from {old_cwd} not found in session cwds: {cwds}")
         return False
-
-    new_primary = cwd_map.get(primary_cwd, primary_cwd)
-    new_project_dirname = encode_cwd(new_primary)
+    new_project_dirname = encode_cwd(new_cwd)
     new_project_dir = PROJECTS_ROOT / new_project_dirname
 
     print(f"  session: {session_id}")
     print(f"  old project: {old_project_dir.name}")
     print(f"  new project: {new_project_dirname}")
-    print(f"  primary cwd: {primary_cwd} -> {new_primary}")
-    if len(cwd_map) > 1:
-        for k, v in cwd_map.items():
-            if k != primary_cwd:
-                print(f"    extra cwd: {k} -> {v}")
+    print(f"  rewrite: {old_cwd} -> {new_cwd}")
+    other = [c for c in cwds if c != old_cwd]
+    if other:
+        print(f"  preserving other cwds (untouched): {other}")
 
     # Files to rewrite: main jsonl + any subagent jsonls.
     targets = [jsonl_path]
@@ -139,10 +113,11 @@ def migrate(jsonl_path: Path, dry_run: bool) -> bool:
 
     total_changed = 0
     for t in targets:
-        n = rewrite_file(t, cwd_map, dry_run)
+        n = rewrite_file(t, old_cwd, new_cwd, dry_run)
         total_changed += n
         if n:
-            print(f"  rewrite {t.relative_to(old_project_dir.parent)}: {n} cwd lines")
+            rel = t.relative_to(old_project_dir.parent)
+            print(f"  rewrite {rel}: {n} cwd lines")
 
     # Compute destinations.
     dest_jsonl = new_project_dir / jsonl_path.name
@@ -165,7 +140,7 @@ def migrate(jsonl_path: Path, dry_run: bool) -> bool:
             if sidecar_dir.is_dir():
                 print(f"  [dry-run] would move {sidecar_dir.name}/ -> {dest_sidecar}")
         else:
-            print(f"  [dry-run] no move needed (primary cwd unchanged); only rewrite")
+            print(f"  [dry-run] no move needed (already in target project dir); only rewrite")
         print(f"  [dry-run] total cwd lines that would be rewritten: {total_changed}")
         return True
 
@@ -177,7 +152,7 @@ def migrate(jsonl_path: Path, dry_run: bool) -> bool:
             shutil.move(str(sidecar_dir), str(dest_sidecar))
             print(f"  moved -> {dest_sidecar}")
     else:
-        print(f"  rewrite only (primary cwd unchanged, no move)")
+        print(f"  rewrite only (already in target project dir)")
     print(f"  done. {total_changed} cwd lines rewritten.")
     return True
 
@@ -185,13 +160,17 @@ def migrate(jsonl_path: Path, dry_run: bool) -> bool:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("jsonl", help="path to session .jsonl file")
+    ap.add_argument("--to", dest="dst", required=True, help="target cwd (absolute path)")
+    ap.add_argument("--from", dest="src", default=None,
+                    help="cwd to rewrite (absolute path); defaults to the first cwd seen in the jsonl")
     g = ap.add_mutually_exclusive_group()
     g.add_argument("--dry-run", action="store_true", default=True)
     g.add_argument("--apply", action="store_true")
     args = ap.parse_args()
     dry_run = not args.apply
-    print(f"{'[DRY-RUN] ' if dry_run else ''}migrating {args.jsonl}")
-    ok = migrate(Path(args.jsonl).expanduser(), dry_run=dry_run)
+    from_str = args.src if args.src else "<primary cwd>"
+    print(f"{'[DRY-RUN] ' if dry_run else ''}migrating {args.jsonl}: {from_str} -> {args.dst}")
+    ok = migrate(Path(args.jsonl).expanduser(), args.src, args.dst, dry_run=dry_run)
     return 0 if ok else 1
 
 
