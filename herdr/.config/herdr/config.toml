@@ -9,5 +9,16 @@ reload_config = "R"
 rename_tab = ","
 rename_pane = "."
 
+# Workspace / tab cycling — direct (no prefix), from terminal mode.
+previous_workspace = "ctrl+alt+["
+next_workspace     = "ctrl+alt+]"
+previous_tab       = "alt+["
+next_tab           = "alt+]"
+
+# Indexed jumps: ctrl+shift+1..9 = workspaces, ctrl+1..9 = tabs.
+[keys.indexed]
+workspaces = "ctrl+shift"
+tabs       = "ctrl"
+
 [theme]
 name = "nord"
