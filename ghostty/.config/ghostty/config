@@ -60,3 +60,7 @@ keybind = cmd+zero=reset_font_size
 # herdr prefix: rewrite cmd+a to ctrl+a so herdr (and any other TUI)
 # sees \x01 as its leader. Overrides the default cmd+a=select_all.
 keybind = cmd+a=text:\x01
+
+# Make left option behave as alt (so alt+[ / alt+] etc. reach the terminal
+# for tab navigation). Right option still types unicode characters.
+macos-option-as-alt = left
