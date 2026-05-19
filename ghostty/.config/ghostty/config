@@ -56,3 +56,7 @@ keybind = cmd+v=paste_from_clipboard
 keybind = cmd+plus=increase_font_size:1
 keybind = cmd+minus=decrease_font_size:1
 keybind = cmd+zero=reset_font_size
+
+# herdr prefix: rewrite cmd+a to ctrl+a so herdr (and any other TUI)
+# sees \x01 as its leader. Overrides the default cmd+a=select_all.
+keybind = cmd+a=text:\x01

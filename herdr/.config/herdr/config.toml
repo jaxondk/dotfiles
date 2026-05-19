@@ -1,0 +1,10 @@
+onboarding = false
+
+[keys]
+# Prefix is ctrl+a. Ghostty rewrites cmd+a to \x01 so the ergonomic combo
+# is cmd+a but TUIs see ctrl+a. Trade-off: vim's ctrl+a (increment number)
+# is shadowed inside herdr panes.
+prefix = "ctrl+a"
+
+[theme]
+name = "nord"

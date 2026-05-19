@@ -92,6 +92,7 @@ cd ~/dotfiles && stow foo
 
 - `ghostty` - terminal emulator
 - `git` - git config and global ignore
+- `herdr` - agent multiplexer; prefix is `cmd+a` (rewritten to ctrl+a by ghostty)
 - `nvim` - Neovim (LazyVim)
 - `opencode` - OpenCode AI assistant
 - `starship` - shell prompt
