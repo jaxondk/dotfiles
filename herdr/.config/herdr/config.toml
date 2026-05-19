@@ -6,6 +6,8 @@ onboarding = false
 # is shadowed inside herdr panes.
 prefix = "ctrl+a"
 reload_config = "R"
+rename_tab = ","
+rename_pane = "."
 
 [theme]
 name = "nord"
