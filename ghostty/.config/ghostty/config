@@ -64,3 +64,8 @@ keybind = cmd+a=text:\x01
 # Make left option behave as alt (so alt+[ / alt+] etc. reach the terminal
 # for tab navigation). Right option still types unicode characters.
 macos-option-as-alt = left
+
+# Forward cmd+shift+left/right as the ctrl+alt+left/right CSI sequence so
+# herdr can listen for it (its key parser doesn't speak raw escape codes).
+keybind = cmd+shift+left=text:\x1b[1;7D
+keybind = cmd+shift+right=text:\x1b[1;7C

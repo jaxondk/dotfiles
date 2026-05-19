@@ -9,16 +9,26 @@ reload_config = "R"
 rename_tab = ","
 rename_pane = "."
 
-# Workspace / tab cycling — direct (no prefix), from terminal mode.
-previous_workspace = "ctrl+alt+["
-next_workspace     = "ctrl+alt+]"
-previous_tab       = "alt+["
-next_tab           = "alt+]"
+# Pane focus — within current tab. Brackets for L/R, arrows for U/D.
+# Herdr has no "cycle pane" action, only directional focus.
+focus_pane_left  = "alt+["
+focus_pane_right = "alt+]"
+focus_pane_up    = "alt+up"
+focus_pane_down  = "alt+down"
 
-# Indexed jumps: ctrl+shift+1..9 = workspaces, ctrl+1..9 = tabs.
+# Tab cycling — within current workspace. Shift adds one tier.
+previous_tab = "shift+alt+["
+next_tab     = "shift+alt+]"
+
+# Workspace cycling — Ghostty rewrites cmd+shift+left/right to the
+# ctrl+alt+left/right CSI sequence for us.
+previous_workspace = "ctrl+alt+left"
+next_workspace     = "ctrl+alt+right"
+
+# Indexed jumps: ctrl+1..9 = workspaces.
 [keys.indexed]
-workspaces = "ctrl+shift"
-tabs       = "ctrl"
+workspaces = "ctrl"
+tabs       = ""
 
 [theme]
 name = "nord"
