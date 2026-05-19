@@ -15,6 +15,7 @@ claude-code/.claude/*
 !claude-code/.claude/commands/
 !claude-code/.claude/plugins/
 !claude-code/.claude/scripts/
+!claude-code/.claude/hooks/
 !claude-code/.claude/mcp.json
 !claude-code/.claude/settings.json
 
