@@ -5,6 +5,7 @@ onboarding = false
 # is cmd+a but TUIs see ctrl+a. Trade-off: vim's ctrl+a (increment number)
 # is shadowed inside herdr panes.
 prefix = "ctrl+a"
+reload_config = "R"
 
 [theme]
 name = "nord"
