@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Reference copy. Installed to ~/Library/LaunchAgents/com.jaxonkeeler.standup-draft.plist
+  Load:    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.jaxonkeeler.standup-draft.plist
+  Unload:  launchctl bootout    gui/$(id -u)/com.jaxonkeeler.standup-draft
+  Status:  launchctl list | grep standup-draft
+  Run now: launchctl kickstart -k gui/$(id -u)/com.jaxonkeeler.standup-draft
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.jaxonkeeler.standup-draft</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/jaxon.keeler/dotfiles/claude-code/.claude/skills/standup/scripts/run-unattended.sh</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>9</integer><key>Minute</key><integer>55</integer></dict>
+    <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>9</integer><key>Minute</key><integer>55</integer></dict>
+    <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>9</integer><key>Minute</key><integer>55</integer></dict>
+    <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>9</integer><key>Minute</key><integer>55</integer></dict>
+    <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>9</integer><key>Minute</key><integer>55</integer></dict>
+  </array>
+  <key>StandardOutPath</key>
+  <string>/Users/jaxon.keeler/Library/Logs/standup-draft.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/jaxon.keeler/Library/Logs/standup-draft.err.log</string>
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>
