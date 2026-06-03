@@ -103,6 +103,20 @@ inert text with broken indentation. If the user wants it *in Slack*, deliver via
 for pasting into a doc/message by hand, markdown `-` is fine. Keep section labels
 (`*What … *`) as `*bold*` lines, not headers.
 
+## Unattended mode (`--unattended`)
+
+A per-user launchd job runs `claude -p "/friday-story --unattended"` **Thursdays ~11:00 local**, so a draft of the week's story is waiting before the Friday sync. No human is in the loop:
+
+- **Never call `AskUserQuestion`** / never block on input.
+- **Window:** the **last 7 days** (`SINCE = today − 7`, through now).
+- **Gather via activity-digest, inline (no subagents)** — the headless permission set excludes the `Agent` tool. Run it for the 7-day window and read/write the digest as usual.
+- **Reframe** per the editorial rules into the default output shape. Since no one is here to answer them, **keep the "Questions for the sync" bullets in the draft** — they're exactly what the user should resolve before posting.
+- **Deliver to the user's personal DM as a draft.** Resolve the current user's Slack `user_id` (via `slack_search_users` on the `userEmail`); call `slack_send_message_draft` with `channel_id = <that user_id>` (a self-DM) and **no `thread_ts`**. It's a scratch space to review/edit, then paste wherever the Friday sync lives.
+- **Formatting:** the draft tool takes **standard markdown** — use `**bold**` for the section labels and `- ` bullets (4-space-indented to nest); the MCP converts them to native Slack formatting. Never literal `•`/`◦`.
+- **Only ever a draft — never `slack_send_message`.**
+- **Idempotency:** if `slack_send_message_draft` returns `draft_already_exists` (the self-DM already has a draft), log and stop — don't clobber.
+- Everything goes to the run log; no conversational output.
+
 ## When it won't work / what to flag
 
 - **Empty week.** Don't pad. `activity-digest` will report the zeros; say "nothing merged since {date}" — but the CC/Slack/Linear sections often still have a story (investigations, design, triage) so check before giving up.
