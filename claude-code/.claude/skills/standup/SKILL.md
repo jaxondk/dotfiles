@@ -7,9 +7,11 @@ description: Draft the user's daily standup post for the #phantom thread in thei
 
 A thin transform: **yesterday's digest → a #phantom standup post**, in the user's own voice. The raw understanding comes from `activity-digest`; this skill only reframes it into the standup shape and fills in the forward-looking parts *with the user*, never by guessing.
 
-## The user's #phantom house style (match it exactly)
+**User-agnostic.** Anyone on the team can run this for themselves. Resolve the current user's identity at runtime — their email from the `userEmail` context → Slack `@handle` / `user_id` via `slack_search_users` (`activity-digest` resolves GitHub/Linear). The only baked-in values are **workspace constants** shared by the whole team: the #phantom channel (`C09HD90PR1C`) and its "Daily Stand-up" bot (`B0AELNL5HFY`) — those hold for everyone in this Slack workspace. If the skill is ever reused in a *different* workspace, resolve #phantom and its stand-up bot by name instead.
 
-Observed from the user's real standup replies. Reproduce faithfully:
+## The #phantom standup house style (match it exactly)
+
+Observed from the team's real #phantom standup replies — the whole channel uses this shape, so it's a channel convention, not one person's. Reproduce faithfully:
 
 - Three lowercase sections: `y:` (yesterday), `t:` (today), `b:` (blockers). Sometimes `b:` is omitted or just `none`.
 - All lowercase, casual. Shorthand: `w/`, `g2g`, `tix`, `smh`, `pr`/`prs`.
@@ -20,7 +22,7 @@ Observed from the user's real standup replies. Reproduce faithfully:
 
 ### Bullets: emit markdown lists, NOT literal `•`/`◦` glyphs
 
-Easy to get wrong, and the reason a previous draft looked off. The user's real posts are **native Slack rich-text lists** (proper nesting + hanging indent). In Slack those come from **markdown** — `- item`, nested by indenting — which Slack *renders* as `•` / `◦`. The bullet glyphs are Slack's rendering, not what you type. **Verified empirically:** sending `- a` / `    - b` via the Slack MCP tools comes back serialized as `•` / `    ◦` — a real list, identical to how the user's standups serialize. Literal `•`/`◦` characters pasted in stay inert text (no nesting, no hanging indent — the "indentation is off" bug).
+Easy to get wrong, and the reason a previous draft looked off. Real #phantom posts are **native Slack rich-text lists** (proper nesting + hanging indent). In Slack those come from **markdown** — `- item`, nested by indenting — which Slack *renders* as `•` / `◦`. The bullet glyphs are Slack's rendering, not what you type. **Verified empirically:** sending `- a` / `    - b` via the Slack MCP tools comes back serialized as `•` / `    ◦` — a real list, identical to how real #phantom standups serialize. Literal `•`/`◦` characters pasted in stay inert text (no nesting, no hanging indent — the "indentation is off" bug).
 
 So:
 - **Draft in markdown:** `- ` for top-level items; indent nested items 4 spaces (or a tab): `    - subitem`. Keep the bare `y:` / `t:` / `b:` label lines above their lists.
@@ -79,7 +81,7 @@ When invoked with `--unattended` (the scheduled launchd job runs `claude -p "/st
 - **`t:` (auto-proposed):** build it from the digest's in-flight threads (unmerged PRs, undecided design questions, "shipping next") **plus carried-over items from the prior day's `t:` that the digest shows didn't land**. Make it visibly provisional — first sub-item `- (proposed — edit before sending)`.
 - **`b:`** — `- none`, unless the digest surfaced a concrete unresolved dependency (blocked PR, pending approval), in which case list it and append `(proposed)`.
 - **Deliver as a draft only:** `slack_send_message_draft` into the resolved thread. **Never `slack_send_message`.** The whole point is that a ready-to-review draft is waiting in the user's compose box; they edit `t:`/`b:` and send it themselves.
-- **Idempotency (check before drafting):** after resolving today's thread, look at whether the user (`U09PRSV657S`) has **already replied** in it — if so, they've posted their own standup; log and stop, don't drop a duplicate draft. Likewise, if `slack_send_message_draft` returns `draft_already_exists`, a draft is already there — log and stop.
+- **Idempotency (check before drafting):** after resolving today's thread, look at whether the **current user** (the Slack `user_id` you resolved from their email) has **already replied** in it — if so, they've posted their own standup; log and stop, don't drop a duplicate draft. Likewise, if `slack_send_message_draft` returns `draft_already_exists`, a draft is already there — log and stop.
 - Everything goes to the run log; there's no conversational output to a human.
 
 ## Notes

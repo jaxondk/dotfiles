@@ -1,13 +1,13 @@
 ---
 name: activity-digest
-description: Gather ALL of the user's activity across the core four sources — local Claude Code conversations (excluding ~/src/personal), code (GitHub PRs/issues/reviews/commits), Slack, and Linear — for an arbitrary time window, and synthesize it into a canonical, factual raw digest. This is the source-of-truth layer: it captures what actually happened, source-attributed, without reframing for any audience. Projections (daily standup, friday-story) are built on top of it and should call this first. Triggers on "what did I do (today/yesterday/this week/since X)", "summarize my activity", "my activity for <period>", "what have I been working on", "pull my activity", or any request to understand work done over a period. NOT for impact/audience framing — that's a projection's job.
+description: Gather ALL of the current user's activity across the core four sources — local Claude Code conversations (excluding private/personal paths), code (GitHub PRs/issues/reviews/commits), Slack, and Linear — for an arbitrary time window, and synthesize it into a canonical, factual raw digest. User-agnostic: identity is resolved at runtime, so anyone can run it for themselves. This is the source-of-truth layer: it captures what actually happened, source-attributed, without reframing for any audience. Projections (daily standup, friday-story) are built on top of it and should call this first. Triggers on "what did I do (today/yesterday/this week/since X)", "summarize my activity", "my activity for <period>", "what have I been working on", "pull my activity", or any request to understand work done over a period. NOT for impact/audience framing — that's a projection's job.
 ---
 
-# Activity digest (Jaxon's canonical work record)
+# Activity digest (canonical work record)
 
 ## What this is
 
-The **raw-understanding layer**. One job: for a given time window, faithfully reconstruct everything the user did across the **core four** sources, attribute each item to its source, cluster lightly by theme, and write it to a durable file. No editorializing, no impact spin, no audience. That faithful record is the point — projections read *from* it.
+The **raw-understanding layer**. One job: for a given time window, faithfully reconstruct everything the current user did across the **core four** sources, attribute each item to its source, cluster lightly by theme, and write it to a durable file. No editorializing, no impact spin, no audience. That faithful record is the point — projections read *from* it.
 
 ```
 sources → activity-digest (raw, canonical) → projections (standup, friday-story, …)
@@ -15,9 +15,20 @@ sources → activity-digest (raw, canonical) → projections (standup, friday-st
 
 If the user asks for a standup or a friday story, run the relevant projection skill — but those skills lean on this one to do the gathering. If the user just asks "what did I do", produce the digest and stop.
 
+## Whose activity (resolve at runtime — nothing is hardcoded to a person)
+
+This skill is **user-agnostic** — it works for whoever runs it. Resolve the current user's identity from the environment, never from a baked-in name:
+
+- **Email** — the harness provides it in the `userEmail` context block. This is the key that ties the other sources together.
+- **GitHub** — `gh api user --jq .login` (whoever `gh` is authenticated as).
+- **Slack** — `slack_search_users` on the email → their `@handle` / `user_id`.
+- **Linear** — `list_users` filtered by the email → their Linear user id.
+
+Remember these for the run. Workspace-level constants (e.g. a specific Slack channel or Linear team) are shared across a team and may be referenced directly, but **person**-level identity is always resolved.
+
 ## The core four sources
 
-1. **Claude Code** — local session transcripts (`~/.claude/projects/*.jsonl`). Catches work that never hit git: design, debugging, investigations, reviews, pairing. **Always exclude `~/src/personal/`** (private).
+1. **Claude Code** — local session transcripts (`~/.claude/projects/*.jsonl`). Catches work that never hit git: design, debugging, investigations, reviews, pairing. **Exclude private/personal paths** — the gather script defaults to skipping `~/src/personal/`, configurable via `CC_EXCLUDE` (so each user can set their own private dirs).
 2. **Code** — GitHub via `gh`: PRs opened (`--created`, any state) / merged / reviewed, issues closed, and commits on default branches.
 3. **Slack** — messages the *user wrote* (MCP-only; no CLI).
 4. **Linear** — issues created/updated/closed, comments authored, status updates (MCP-only; no CLI).
@@ -69,7 +80,7 @@ Slack and Linear have no CLI. Dispatch **two subagents in parallel** (one per so
   4. **Comments:** for in-window candidate issues, `list_comments` and keep comments whose author is the user.
   5. **Assigned:** also surface issues currently `assignee: me` updated in-window — received assignments are real activity worth noting (but label them as "assigned", not authored).
   6. Report with `TEAM-NNN` identifiers + titles, classified as created / closed / commented / assigned.
-  - **`gitBranchName` (e.g. `jaxonkeeler/fire-838-…`) is auto-derived from the querying token and is NOT evidence of authorship** — verified: June-1 issues created by larry.rivera / ying-ke / dlruddell all carried `jaxonkeeler/…` branch names. Never infer involvement from it.
+  - **`gitBranchName` (e.g. `<your-handle>/fire-852-…`) is auto-derived from the querying token and is NOT evidence of authorship** — verified: issues created by *other* people still come back stamped with the querying user's branch-name prefix. Never infer involvement from it.
 
 (For a single short window you may pull Slack/Linear inline instead of via subagents — but parallel subagents are the proven shape and scale to wide windows.)
 
