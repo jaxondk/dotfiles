@@ -1,0 +1,19 @@
+# This is Git's per-user configuration file.
+[user]
+	name = {{ .name }}
+	email = {{ .email }}
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+
+[rerere]
+	enabled = true
+{{- if .personalGitEmail }}
+
+# Personal repos under ~/src/personal/ use a different identity.
+# This block is only written when a personal git email was provided at init.
+[includeIf "gitdir:~/src/personal/"]
+	path = ~/.gitconfig-personal
+{{- end }}

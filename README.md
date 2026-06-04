@@ -1,128 +1,101 @@
 # Dotfiles
 
-My dotfiles, managed with [GNU Stow](https://www.gnu.org/software/stow/).
+Managed with [chezmoi](https://chezmoi.io). One command sets up a new machine:
+identity prompts, package installs, configs, and editor/AI tooling all land in place.
 
-## How It Works
-
-This repo uses stow to create symlinks from your home directory into this repo. Each top-level directory is a "package" that maps to files in `~`.
-
-For example:
-```
-dotfiles/zsh/.zshrc  -->  ~/.zshrc (symlink)
-dotfiles/nvim/.config/nvim/  -->  ~/.config/nvim (symlink)
-```
-
-When you edit `~/.zshrc`, you're actually editing the file in this repo.
-
-## Setup (New Machine)
-
-You'll need to install any tools that are being used / managed that you haven't already installed. For example:
+## New machine
 
 ```bash
-brew install starship antidote nvim worktrunk opencode
-```
-
-Additionally, you need to install stow, which is used for symlinking all of these dotfiles.
-
-
-```bash
-# Install stow
-brew install stow   # macOS
-# apt install stow  # Debian/Ubuntu
-
-# Clone repo
-git clone git@github.com:YOUR_USERNAME/dotfiles.git ~/dotfiles
+gh repo clone jaxondk/dotfiles ~/dotfiles
 cd ~/dotfiles
-
-# Create symlinks for all packages
-./stow-all.sh
+./install.sh
 ```
 
-If stow reports conflicts, you have existing files where it wants to create symlinks. Back them up and remove them, then re-run stow.
+`install.sh` installs chezmoi if needed, then runs `chezmoi init --apply` against this
+repo. On first run it asks a few questions (name, git email, work email, optional
+personal git identity), installs packages, writes all configs, and runs `bun install`
+for the opencode plugins. Re-running is safe.
 
-## Usage
+Then drop secrets in place (see [Secrets](#secrets)) and restart your shell: `exec zsh`.
 
-**Stow** = create symlinks (activate a package)
+## How it works (chezmoi in 30 seconds)
 
-**Unstow** = remove symlinks (deactivate a package)
+chezmoi keeps a **source** (this repo, specifically the `home/` subdirectory) and
+writes **real files** into `$HOME` when you run `chezmoi apply`. Source filenames use
+prefixes that encode attributes:
 
-**Restow** = remove then recreate symlinks (useful after renaming/moving files)
+| Source name (under `home/`)        | Becomes                         |
+| ---------------------------------- | ------------------------------- |
+| `dot_zshrc`                        | `~/.zshrc`                      |
+| `dot_config/nvim/init.lua`         | `~/.config/nvim/init.lua`      |
+| `dot_gitconfig.tmpl`               | `~/.gitconfig` (templated)      |
+| `executable_foo.sh`                | `~/foo.sh` with `+x`            |
+| `symlink_bar.tmpl`                 | a symlink whose target is the rendered file contents |
+| `run_once_*.sh.tmpl`               | a script run once per machine   |
+
+`.tmpl` files are Go templates filled from the answers you gave at init (stored in
+`~/.config/chezmoi/chezmoi.toml`). That's how the same repo produces the right
+identity and `$HOME` paths on any machine.
+
+`.chezmoiroot` points chezmoi at `home/`, so everything outside `home/` (this README,
+`install.sh`, `agentic/`) is plain repo content that chezmoi ignores.
+
+## Daily use
+
+You no longer edit `~/.zshrc` directly (it's a real file, not a symlink). Instead:
 
 ```bash
-# Stow all packages
-./stow-all.sh
-
-# Stow a single package
-cd ~/dotfiles
-stow zsh
-
-# Unstow (remove symlinks)
-stow -D zsh        # single package
-stow -D */         # all packages
-
-# Restow (refresh symlinks)
-stow -R zsh
+chezmoi edit ~/.zshrc        # edit the source, auto-applies on save
+chezmoi cd                   # jump into the source dir (~/dotfiles/home)
+chezmoi apply                # apply pending source changes to $HOME
+chezmoi diff                 # preview what apply would change
+chezmoi status               # short list of what's out of sync
+chezmoi re-add               # pull edits you made directly in $HOME back into source
 ```
 
-### When to use each
+After editing in `chezmoi cd`, commit and push like any repo. To pull updates on
+another machine: `chezmoi update` (git pull + apply).
 
-**Stow**: Setting up a new machine, or adding a new package to the repo.
-
-**Unstow**: Removing a package from the repo, or temporarily disabling a config.
-
-**Restow**: After renaming or moving files within a package.
-
-In practice, you'll mostly just run `./stow-all.sh` once on a new machine, then edit configs directly (symlinks mean edits go straight to the repo) and commit/push. You rarely need to re-run stow unless adding a new package or restructuring files.
-
-## Adding New Configs
-
-1. Create a new directory for the package
-2. Mirror the path structure from `~`
-3. Move your config file(s) into that structure
-4. Run `stow <package>`
-
-Example for adding `~/.config/foo/config.toml`:
-```bash
-mkdir -p ~/dotfiles/foo/.config/foo
-mv ~/.config/foo/config.toml ~/dotfiles/foo/.config/foo/
-cd ~/dotfiles && stow foo
-```
-
-## Packages
-
-- `ghostty` - terminal emulator
-- `git` - git config and global ignore
-- `herdr` - agent multiplexer; prefix is `cmd+a` (rewritten to ctrl+a by ghostty)
-- `nvim` - Neovim (LazyVim)
-- `opencode` - OpenCode AI assistant
-- `starship` - shell prompt
-- `worktrunk` - git worktree manager
-- `zsh` - shell config
-
-### opencode
-
-After stowing, install plugin dependencies:
+### Add a new config file
 
 ```bash
-cd ~/.config/opencode && bun install
+chezmoi add ~/.config/foo/config.toml      # imports it into the source tree
+chezmoi cd && git add . && git commit       # then commit
 ```
 
-#### Notifications (Slack)
+## What's managed
 
-The opencode package includes the [opencode-notify](https://github.com/kdcokenny/opencode-notify) plugin with Slack webhook support. Native macOS notifications are disabled by default in favor of Slack (which covers both desktop and mobile).
+- **zsh** — `.zshrc`, plugins (antidote), `~/.zsh/functions.zsh`
+- **git** — `.gitconfig` (templated identity) + global ignore; optional personal identity
+- **ghostty / starship / nvim (LazyVim) / direnv / herdr / worktrunk** — `~/.config/*`
+- **opencode** — `~/.config/opencode` (plugins via `bun install`)
+- **Claude Code** — `~/.claude/{settings.json,hooks,commands,agents,skills,scripts,plugins}`
+- **skills library** — public skills vendored under `~/.agents/skills` + pinned by
+  `~/.agents/.skill-lock.json`; exposed to Claude via symlinks
 
-To set up Slack notifications:
+See [AGENTS.md](AGENTS.md) for the full layout and conventions.
 
-1. Go to https://api.slack.com/apps and click "Create New App" > "From scratch"
-2. Name it something like "OpenCode Notify" and pick your workspace
-3. Go to "Incoming Webhooks" in the sidebar and toggle it on
-4. Click "Add New Webhook to Workspace" and pick the channel or DM you want notifications in
-5. Copy the webhook URL (looks like `https://hooks.slack.com/services/T.../B.../xxx`)
-6. Create your config from the example:
-   ```bash
-   cp ~/.config/opencode/kdco-notify.example.json ~/.config/opencode/kdco-notify.json
-   ```
-7. Edit `~/.config/opencode/kdco-notify.json` and replace the placeholder with your webhook URL
-8. Restart OpenCode
+## Secrets
 
-The real config is gitignored since it contains the webhook secret. To re-enable native macOS notifications alongside Slack, set `"native": true` in the config.
+Secrets are **not** managed by chezmoi. Recreate these per machine:
+
+- `~/.zsh_secrets` and `~/.zshrc.local` — sourced by `.zshrc` if present
+- `~/.config/opencode/kdco-notify.json` — Slack webhook (copy from `kdco-notify.example.json`)
+
+## Claude Code skills
+
+- **Authored skills** (e.g. `activity-digest`, `standup`, `friday-story`) live as real
+  files in the repo and deploy directly.
+- **Public skills** (mattpocock/skills, playwriter, …) are vendored under
+  `home/dot_agents/skills/` and surfaced as symlinks in `~/.claude/skills`. The set is
+  pinned in `~/.agents/.skill-lock.json`.
+- **Work skills** (`shadow-*`, `mission*`) are symlinks into the private
+  `Twenty-IO/shadow-factory` repo. They're only deployed when that repo is cloned at
+  `~/src/xx-internal-ai/shadow-factory` — otherwise chezmoi skips them, so a fresh or
+  personal box never gets dangling links.
+
+## The `agentic/` directory
+
+`agentic/` is the canonical, harness-agnostic source for some agent definitions, synced
+into each tool by the `sync-agentic` skill. It is **not** a chezmoi-managed target — it
+stays as plain repo content.

@@ -6,18 +6,14 @@
 *.swo
 *~
 
-# Claude Code: ~/.claude is symlinked into this tree, so runtime state
-# (credentials, sessions, history, caches) lands here. Ignore everything
-# by default, then opt in to the config dirs we actually want to track.
-claude-code/.claude/*
-!claude-code/.claude/agents/
-!claude-code/.claude/skills/
-!claude-code/.claude/commands/
-!claude-code/.claude/plugins/
-!claude-code/.claude/scripts/
-!claude-code/.claude/hooks/
-!claude-code/.claude/mcp.json
-!claude-code/.claude/settings.json
+# chezmoi: never commit machine-local state, secrets, or generated deps that
+# might get pulled in via `chezmoi add`.
+home/dot_config/opencode/node_modules/
+home/dot_config/opencode/bun.lock
+home/dot_config/opencode/kdco-notify.json
+home/dot_config/opencode/.bd-enabled
+home/.chezmoiignore.local
 
-# Machine-local secrets / overrides (never track)
-.zshrc.local
+# Secrets are managed outside chezmoi entirely; guard against accidental adds.
+home/dot_zsh_secrets
+home/dot_zshrc.local

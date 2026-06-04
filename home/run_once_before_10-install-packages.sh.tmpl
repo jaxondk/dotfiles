@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Installs the tools the dotfiles assume. Runs once per machine (chezmoi tracks
+# a hash of this file; bump anything here and it re-runs on next `chezmoi apply`).
+set -euo pipefail
+
+echo "==> Installing packages..."
+
+{{ if eq .chezmoi.os "darwin" -}}
+if ! command -v brew >/dev/null 2>&1; then
+  echo "==> Installing Homebrew..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"
+fi
+
+# Core CLI tools. `|| true` so one unavailable formula doesn't abort the rest.
+brew install \
+  starship antidote neovim direnv zsh-autosuggestions \
+  gh bun mise jq chezmoi || true
+
+# Terminal + custom-tap tools (best effort; skip if the tap isn't trusted/available).
+brew install --cask ghostty || true
+brew install max-sixty/worktrunk/wt || true
+
+{{ else if eq .chezmoi.os "linux" -}}
+if command -v apt >/dev/null 2>&1; then
+  sudo apt update
+  sudo apt install -y zsh zsh-autosuggestions git curl direnv jq
+  command -v starship >/dev/null 2>&1 || curl -sS https://starship.rs/install.sh | sudo sh -s -- -y
+  command -v nvim     >/dev/null 2>&1 || sudo snap install nvim --classic || sudo apt install -y neovim
+  # antidote (apt's package ships only a CLI, not a sourceable antidote.zsh)
+  [ -d "$HOME/.antidote" ] || git clone --depth=1 https://github.com/mattmc3/antidote.git "$HOME/.antidote"
+elif command -v dnf >/dev/null 2>&1; then
+  sudo dnf install -y zsh git curl neovim direnv jq
+  command -v starship >/dev/null 2>&1 || curl -sS https://starship.rs/install.sh | sh -s -- -y
+fi
+{{ end -}}
+
+echo "==> Package install step complete."

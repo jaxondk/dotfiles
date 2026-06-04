@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Make zsh the default shell if it isn't already. May prompt for your password.
+set -euo pipefail
+
+ZSH_PATH="$(command -v zsh || true)"
+if [ -n "$ZSH_PATH" ] && [ "${SHELL:-}" != "$ZSH_PATH" ]; then
+  echo "==> Setting default shell to $ZSH_PATH ..."
+  grep -qxF "$ZSH_PATH" /etc/shells 2>/dev/null || echo "$ZSH_PATH" | sudo tee -a /etc/shells >/dev/null
+  chsh -s "$ZSH_PATH" || echo "   (chsh failed — change your shell manually if desired)"
+fi

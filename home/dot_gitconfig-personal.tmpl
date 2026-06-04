@@ -1,0 +1,13 @@
+{{/* Identity for repos under ~/src/personal/ (see includeIf in ~/.gitconfig).
+     Only deployed when personalGitEmail was provided at `chezmoi init`
+     (otherwise .chezmoiignore drops it). */}}
+[user]
+	name = {{ .personalGitName }}
+	email = {{ .personalGitEmail }}
+
+# Rewrite github.com remotes to use the personal SSH host alias.
+# Requires a `github-personal` Host entry in ~/.ssh/config pointing at your
+# personal key (ssh setup is machine-local and not managed by chezmoi).
+[url "git@github-personal:"]
+	insteadOf = git@github.com:
+	insteadOf = https://github.com/

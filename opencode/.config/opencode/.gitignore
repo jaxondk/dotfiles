@@ -1,7 +1,0 @@
-.bd-enabled
-bun.lock
-package.json
-node_modules/
-
-# Contains Slack webhook URL
-kdco-notify.json

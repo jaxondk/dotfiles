@@ -1,1 +1,0 @@
-/Users/jaxon.keeler/src/xx-internal-ai/shadow-factory/plugin/shadow-factory/commands/mission-trace.md
