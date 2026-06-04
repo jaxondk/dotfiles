@@ -57,9 +57,11 @@ keybind = cmd+plus=increase_font_size:1
 keybind = cmd+minus=decrease_font_size:1
 keybind = cmd+zero=reset_font_size
 
-# herdr prefix: rewrite cmd+a to ctrl+a so herdr (and any other TUI)
-# sees \x01 as its leader. Overrides the default cmd+a=select_all.
-keybind = cmd+a=text:\x01
+# herdr prefix: rewrite cmd+a to ctrl+b so herdr sees \x02 as its leader.
+# Using ctrl+b (not ctrl+a) so \x01 stays free for readline's
+# beginning-of-line — Ghostty's default cmd+left=text:\x01 was colliding
+# with a ctrl+a prefix and dropping us into nav mode on cmd+left.
+keybind = cmd+a=text:\x02
 
 # Make left option behave as alt (so alt+[ / alt+] etc. reach the terminal
 # for tab navigation). Right option still types unicode characters.

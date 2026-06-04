@@ -2,7 +2,7 @@
 # installed by herdr
 # safe to edit. this hook only activates inside herdr-managed panes.
 # HERDR_INTEGRATION_ID=claude
-# HERDR_INTEGRATION_VERSION=1
+# HERDR_INTEGRATION_VERSION=3
 
 set -eu
 
@@ -47,9 +47,14 @@ if hook_input_file:
     except Exception:
         hook_input = {}
 
-is_subagent = bool(hook_input.get("agent_id"))
-if is_subagent and action in ("idle", "release"):
-    action = "working"
+# Filter all subagent-attributed events. The parent's own hooks
+# (UserPromptSubmit / PreToolUse(Task) / PostToolUse(Task) / Stop) already
+# describe the user-visible state during a normal Task() subagent. Reporting
+# off the subagent's events is redundant during a parent turn and gets stuck
+# at "working" when a subagent runs outside any parent turn (notably the
+# /recap and away-summary recaps, whose SubagentStop never has a Stop after).
+if hook_input.get("agent_id"):
+    raise SystemExit(0)
 
 request_id = f"{source}:{int(time.time() * 1000)}:{random.randrange(1_000_000):06d}"
 report_seq = time.time_ns()

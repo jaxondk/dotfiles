@@ -10,3 +10,6 @@ name = Jaxon Keeler
 
 [rerere]
 	enabled = true
+
+[includeIf "gitdir:~/src/personal/"]
+	path = ~/.gitconfig-jaxondk

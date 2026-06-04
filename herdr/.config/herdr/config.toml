@@ -1,10 +1,13 @@
 onboarding = false
 
 [keys]
-# Prefix is ctrl+a. Ghostty rewrites cmd+a to \x01 so the ergonomic combo
-# is cmd+a but TUIs see ctrl+a. Trade-off: vim's ctrl+a (increment number)
-# is shadowed inside herdr panes.
-prefix = "ctrl+a"
+# Prefix is ctrl+b. Ghostty rewrites cmd+a to \x02 so the ergonomic combo
+# is still cmd+a but TUIs see ctrl+b. Picked ctrl+b over ctrl+a so \x01
+# stays free for readline beginning-of-line (Ghostty's default cmd+left
+# sends \x01; with a ctrl+a prefix that collided with herdr's leader and
+# dropped us into nav mode on cmd+left).
+# Trade-off: vim's ctrl+b (page up) is shadowed inside herdr panes.
+prefix = "ctrl+b"
 reload_config = "R"
 rename_tab = ","
 rename_pane = "."

@@ -73,16 +73,18 @@ Then deliver. **This skill only ever creates a draft — it never sends:**
 
 When invoked with `--unattended` (the scheduled launchd job runs `claude -p "/standup --unattended"` weekday mornings ~9:55 ET, just after the stand-up bot posts), there is **no human in the loop**. Override the interactive steps as follows:
 
+> **No Slack in headless runs.** The claude.ai Slack/Linear *connectors only load in the interactive client* — in this headless session there is **no `slack_*` or Linear MCP tool at all** (don't waste effort hunting for them via ToolSearch; they aren't there). So unattended mode cannot read Slack, resolve the #phantom thread, or place a Slack draft. Delivery is split out: you write the finished standup to a file, and `run-unattended.sh` DMs it to the user afterward via deterministic bash. Your job is just steps 1 + 3–5-on-a-file below.
+
 - **Never call `AskUserQuestion`** and never block on input. Step 4 is replaced by the auto-policy below.
 - **Window:** same rule as normal — yesterday, widened to "since the last working day" on a Monday (Fri–Sun).
-- **Gather inline, no subagents.** Do the Slack + Linear pulls inline (the headless permission set does not include the `Agent` tool); a single-day window is small enough. Run `gather-code-and-cc.sh` for the code+CC half as usual and write the digest file.
-- **Resolve today's thread, and if it's not there yet, STOP.** Find today's "Daily Stand-up" bot parent (`B0AELNL5HFY`) in `C09HD90PR1C`. If today's prompt doesn't exist yet, **log it and exit without drafting** — never fall back to an old thread.
-- **`y:`** — draft from the digest exactly as in step 3 (reconciled against the prior day's `t:`).
-- **`t:` (auto-proposed):** build it from the digest's in-flight threads (unmerged PRs, undecided design questions, "shipping next") **plus carried-over items from the prior day's `t:` that the digest shows didn't land**. Make it visibly provisional — first sub-item `- (proposed — edit before sending)`.
+- **Gather code + CC inline, no subagents** (the headless permission set has no `Agent` tool): run `gather-code-and-cc.sh` and write the digest file. **Skip the Slack + Linear pulls** — those tools aren't available here; record them as gaps in the digest (same as the prior-standup continuity check, which is also unavailable). The code+CC half alone is a rich enough basis for `y:`.
+- **`y:`** — draft from the digest exactly as in step 3. (No prior-`t:` reconciliation is possible without Slack; just report the digest faithfully.)
+- **`t:` (auto-proposed):** build it from the digest's in-flight threads (unmerged PRs, undecided design questions, "shipping next"). Make it visibly provisional — first sub-item `- (proposed — edit before sending)`.
 - **`b:`** — `- none`, unless the digest surfaced a concrete unresolved dependency (blocked PR, pending approval), in which case list it and append `(proposed)`.
-- **Deliver as a draft only:** `slack_send_message_draft` into the resolved thread. **Never `slack_send_message`.** The whole point is that a ready-to-review draft is waiting in the user's compose box; they edit `t:`/`b:` and send it themselves.
-- **Idempotency (check before drafting):** after resolving today's thread, look at whether the **current user** (the Slack `user_id` you resolved from their email) has **already replied** in it — if so, they've posted their own standup; log and stop, don't drop a duplicate draft. Likewise, if `slack_send_message_draft` returns `draft_already_exists`, a draft is already there — log and stop.
-- Everything goes to the run log; there's no conversational output to a human.
+- **Deliver by writing the body to a file — do NOT touch Slack.** Resolve the output path from the `$STANDUP_DRAFT_FILE` env var (e.g. `printenv STANDUP_DRAFT_FILE` via Bash). Write **only the finished standup** to it: the bare `y:` / `t:` / `b:` label lines and their `- ` markdown bullets (per the Bullets rule), and **nothing else** — no commentary, no headers, no ``` fences, no "here's your draft" prose. That file is posted verbatim into the user's Slack DM by the wrapper script, so anything extra ends up in the message. (Log your reasoning/blockers separately to stdout — that goes to the run log, not the DM.)
+- **Empty `y:`:** if the digest found nothing, write the short empty-`y:` note to `$STANDUP_DRAFT_FILE` instead (don't skip the file).
+- No thread resolution, no Slack-side idempotency, no `slack_send_message` / `slack_send_message_draft` — none of those tools exist here. (The wrapper de-dups delivery on its own so a same-day re-run won't double-DM.)
+- Everything else goes to the run log; there's no conversational output to a human.
 
 ## Notes
 
