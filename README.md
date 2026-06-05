@@ -40,6 +40,10 @@ identity and `$HOME` paths on any machine.
 `.chezmoiroot` points chezmoi at `home/`, so everything outside `home/` (this README,
 `install.sh`, `agentic/`) is plain repo content that chezmoi ignores.
 
+This repo **is** the chezmoi source: `install.sh` runs `chezmoi init --source=~/dotfiles`,
+so the source stays at `~/dotfiles` (not chezmoi's default `~/.local/share/chezmoi`).
+`chezmoi` commands work from any directory.
+
 ## Daily use
 
 You no longer edit `~/.zshrc` directly (it's a real file, not a symlink). Instead:
@@ -51,16 +55,37 @@ chezmoi apply                # apply pending source changes to $HOME
 chezmoi diff                 # preview what apply would change
 chezmoi status               # short list of what's out of sync
 chezmoi re-add               # pull edits you made directly in $HOME back into source
+chezmoi update               # git pull + apply (sync another machine)
+chezmoi data                 # dump the template variables (debug .tmpl files)
 ```
 
-After editing in `chezmoi cd`, commit and push like any repo. To pull updates on
-another machine: `chezmoi update` (git pull + apply).
+`chezmoi edit` on a templated target (e.g. `chezmoi edit ~/.gitconfig`) opens the
+**template** — you'll see `{{ ... }}` syntax; keep it intact. After editing in
+`chezmoi cd`, commit and push like any repo.
 
 ### Add a new config file
 
 ```bash
 chezmoi add ~/.config/foo/config.toml      # imports it into the source tree
 chezmoi cd && git add . && git commit       # then commit
+```
+
+### Remove / stop managing a file
+
+```bash
+chezmoi forget ~/.config/foo/config.toml   # stop managing it; leaves the file in $HOME
+chezmoi destroy ~/.config/foo/config.toml  # remove it from BOTH source and $HOME
+```
+
+### Change your init answers (name, emails, personal identity)
+
+Answers live in `~/.config/chezmoi/chezmoi.toml` under `[data]`. To change them, either
+edit that file directly, or force the prompts to run again (a plain `chezmoi init` skips
+them once they're set):
+
+```bash
+chezmoi init --prompt    # re-ask every question (current values are the defaults)
+chezmoi apply            # re-render templated files with the new values
 ```
 
 ## What's managed

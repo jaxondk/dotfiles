@@ -76,7 +76,11 @@ chezmoi apply --exclude=scripts  # apply files without re-running install script
 ```
 
 Verify a template renders before applying: `chezmoi cat ~/.gitconfig`.
+Inspect available template variables: `chezmoi data`.
 Validate the whole tree: `chezmoi status` should be empty when in sync.
+Stop managing a file without deleting it: `chezmoi forget <target>` (use `destroy` to
+remove from both source and `$HOME`). Change init answers: `chezmoi init --prompt`
+(a plain re-init won't re-ask, since prompts use `promptStringOnce`).
 
 ## `agentic/`
 
