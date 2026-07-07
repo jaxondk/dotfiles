@@ -369,6 +369,19 @@ _gt_prune_local() {
   fi
 }
 
+# Always run `claude` with --dangerously-skip-permissions. Injects the flag
+# unless it's already present, so manual invocations and herdr's automatic
+# `claude --resume <id>` on reattach both pick it up.
+claude() {
+  for arg in "$@"; do
+    if [[ "$arg" == "--dangerously-skip-permissions" ]]; then
+      command claude "$@"
+      return
+    fi
+  done
+  command claude --dangerously-skip-permissions "$@"
+}
+
 critique() {
   if ! command -v gh &>/dev/null; then
     echo "Error: gh CLI not found. Install: brew install gh" >&2
