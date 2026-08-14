@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Installs herdr's Claude Code integration.
+#
+# `herdr integration install claude` writes ~/.claude/hooks/herdr-agent-state.sh
+# and adds the matching hook entries to ~/.claude/settings.json. Both are herdr's
+# output, not ours — the hook script carries a HERDR_INTEGRATION_VERSION that herdr
+# bumps over time. We deliberately do NOT track either in chezmoi; committing them
+# would pin every machine to whatever version was current on the day they were
+# committed. Running the installer here means each machine gets the version that
+# ships with its own herdr binary.
+#
+# Runs after the package install step, so `herdr` is on PATH by now.
+set -euo pipefail
+
+if ! command -v herdr >/dev/null 2>&1; then
+  echo "==> herdr not on PATH; skipping Claude Code integration."
+  exit 0
+fi
+
+echo "==> Installing herdr Claude Code integration..."
+herdr integration install claude || {
+  echo "==> herdr integration install failed (non-fatal); run it by hand later." >&2
+  exit 0
+}
+
+echo "==> herdr integration complete."

@@ -12,10 +12,24 @@ if ! command -v brew >/dev/null 2>&1; then
   eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"
 fi
 
-# Core CLI tools. `|| true` so one unavailable formula doesn't abort the rest.
-brew install \
-  starship antidote neovim direnv zsh-autosuggestions \
-  gh bun mise jq chezmoi || true
+# Core CLI tools. Installed ONE AT A TIME on purpose: a single `brew install a b c`
+# aborts the whole command on the first failure, and a trailing `|| true` then hides
+# it — which is exactly how herdr silently failed to install on the first real run
+# (an untrusted-tap trust check aborted the batch before reaching it). Per-package
+# means one bad formula costs you that formula and nothing else, and the failure
+# is reported instead of swallowed.
+#
+# herdr is the agent multiplexer that ~/.config/herdr/config.toml, the ghostty
+# cmd+a keybind, and run_once_after_40 (its Claude Code integration) all assume.
+failed=""
+for pkg in starship antidote neovim direnv zsh-autosuggestions \
+           gh bun mise jq chezmoi herdr; do
+  brew install "$pkg" || failed="$failed $pkg"
+done
+if [ -n "$failed" ]; then
+  echo "==> WARNING: these formulae failed to install:$failed" >&2
+  echo "    Install them by hand, then re-run: chezmoi apply" >&2
+fi
 
 # Terminal + custom-tap tools (best effort; skip if the tap isn't trusted/available).
 brew install --cask ghostty || true
