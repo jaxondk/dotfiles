@@ -41,6 +41,7 @@ fi
 # set -o vi
 
 ######## ALIASES
+alias c=claude
 alias hg="history -n 1000 | grep"
 alias zshrc='vim ~/.zshrc'
 alias sz='source ~/.zshrc'

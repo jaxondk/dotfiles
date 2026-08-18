@@ -26,6 +26,23 @@ for pkg in starship antidote neovim direnv zsh-autosuggestions \
            gh bun mise jq chezmoi herdr; do
   brew install "$pkg" || failed="$failed $pkg"
 done
+
+# Optional tools: prompted so a personal box isn't forced to carry heavy or
+# work-flavored formulae. Only asks on an interactive terminal — a
+# non-interactive `chezmoi apply` (CI, first-boot automation) just gets the
+# core set above. Press Enter to skip each one. To add one later, either
+# re-run `chezmoi apply` (this script re-runs when its hash changes) or just
+# `brew install <name>` by hand.
+if [ -t 0 ]; then
+  for pkg in git-lfs postgresql@15 fzf fd tree tig lazygit just tmux opencode; do
+    printf "==> install optional tool '%s'? [y/N] " "$pkg"
+    read -r ans
+    case "$ans" in
+      y|Y|yes) brew install "$pkg" || failed="$failed $pkg" ;;
+    esac
+  done
+fi
+
 if [ -n "$failed" ]; then
   echo "==> WARNING: these formulae failed to install:$failed" >&2
   echo "    Install them by hand, then re-run: chezmoi apply" >&2
