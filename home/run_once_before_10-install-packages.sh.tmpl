@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Installs the tools the dotfiles assume. Runs once per machine (chezmoi tracks
+# a hash of this file; bump anything here and it re-runs on next `chezmoi apply`).
+set -euo pipefail
+
+echo "==> Installing packages..."
+
+{{ if eq .chezmoi.os "darwin" -}}
+if ! command -v brew >/dev/null 2>&1; then
+  echo "==> Installing Homebrew..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"
+fi
+
+# Core CLI tools. Installed ONE AT A TIME on purpose: a single `brew install a b c`
+# aborts the whole command on the first failure, and a trailing `|| true` then hides
+# it — which is exactly how herdr silently failed to install on the first real run
+# (an untrusted-tap trust check aborted the batch before reaching it). Per-package
+# means one bad formula costs you that formula and nothing else, and the failure
+# is reported instead of swallowed.
+#
+# herdr is the agent multiplexer that ~/.config/herdr/config.toml, the ghostty
+# cmd+a keybind, and run_once_after_40 (its Claude Code integration) all assume.
+failed=""
+for pkg in starship antidote neovim direnv zsh-autosuggestions \
+           gh bun mise jq chezmoi herdr; do
+  brew install "$pkg" || failed="$failed $pkg"
+done
+
+# Optional tools: prompted so a personal box isn't forced to carry heavy or
+# work-flavored formulae. Only asks on an interactive terminal — a
+# non-interactive `chezmoi apply` (CI, first-boot automation) just gets the
+# core set above. Press Enter to skip each one. To add one later, either
+# re-run `chezmoi apply` (this script re-runs when its hash changes) or just
+# `brew install <name>` by hand.
+if [ -t 0 ]; then
+  for pkg in git-lfs postgresql@15 fzf fd tree tig lazygit just tmux opencode; do
+    printf "==> install optional tool '%s'? [y/N] " "$pkg"
+    read -r ans
+    case "$ans" in
+      y|Y|yes) brew install "$pkg" || failed="$failed $pkg" ;;
+    esac
+  done
+fi
+
+if [ -n "$failed" ]; then
+  echo "==> WARNING: these formulae failed to install:$failed" >&2
+  echo "    Install them by hand, then re-run: chezmoi apply" >&2
+fi
+
+# Terminal + custom-tap tools (best effort; skip if the tap isn't trusted/available).
+brew install --cask ghostty || true
+brew install max-sixty/worktrunk/wt || true
+
+{{ else if eq .chezmoi.os "linux" -}}
+if command -v apt >/dev/null 2>&1; then
+  sudo apt update
+  sudo apt install -y zsh zsh-autosuggestions git curl direnv jq
+  command -v starship >/dev/null 2>&1 || curl -sS https://starship.rs/install.sh | sudo sh -s -- -y
+  command -v nvim     >/dev/null 2>&1 || sudo snap install nvim --classic || sudo apt install -y neovim
+  # antidote (apt's package ships only a CLI, not a sourceable antidote.zsh)
+  [ -d "$HOME/.antidote" ] || git clone --depth=1 https://github.com/mattmc3/antidote.git "$HOME/.antidote"
+elif command -v dnf >/dev/null 2>&1; then
+  sudo dnf install -y zsh git curl neovim direnv jq
+  command -v starship >/dev/null 2>&1 || curl -sS https://starship.rs/install.sh | sh -s -- -y
+fi
+{{ end -}}
+
+echo "==> Package install step complete."

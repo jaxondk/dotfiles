@@ -1,0 +1,19 @@
+{{/* Prompts on `chezmoi init`. Answers are stored in ~/.config/chezmoi/chezmoi.toml
+     and reused on every later `chezmoi apply`. Defaults are pre-filled with the
+     repo owner's values, so pressing Enter through them is fine on the owner's machines. */}}
+{{- $name      := promptStringOnce . "name"      "Full name (git author)"            "Jaxon Keeler" -}}
+{{- $email     := promptStringOnce . "email"     "Primary git email"                 "jaxon.keeler@twenty.io" -}}
+{{- $workEmail := promptStringOnce . "workEmail" "Work email (Claude account-guard)" "jaxon.keeler@twenty.io" -}}
+{{/* Leave personalGitEmail blank to skip the separate ~/src/personal identity entirely. */}}
+{{- $personalGitEmail := promptStringOnce . "personalGitEmail" "Personal git email for ~/src/personal (blank to skip)" "" -}}
+{{- $personalGitName  := "" -}}
+{{- if $personalGitEmail }}{{ $personalGitName = promptStringOnce . "personalGitName" "Personal git name" "jaxondk" }}{{ end -}}
+
+sourceDir = {{ .chezmoi.sourceDir | quote }}
+
+[data]
+    name             = {{ $name | quote }}
+    email            = {{ $email | quote }}
+    workEmail        = {{ $workEmail | quote }}
+    personalGitEmail = {{ $personalGitEmail | quote }}
+    personalGitName  = {{ $personalGitName | quote }}
