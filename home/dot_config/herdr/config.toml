@@ -8,9 +8,13 @@ onboarding = false
 # dropped us into nav mode on cmd+left).
 # Trade-off: vim's ctrl+b (page up) is shadowed inside herdr panes.
 prefix = "ctrl+b"
-reload_config = "R"
-rename_tab = ","
-rename_pane = "."
+
+# herdr now requires unambiguous prefix-scoped syntax for anything that could
+# collide with normal typing (bare "R", ",", "." get silently disabled as of
+# herdr 0.8.2 — `herdr config check` flags this). Explicit prefix+ below.
+reload_config = "prefix+shift+r"
+rename_tab = "prefix+,"
+rename_pane = "prefix+."
 
 # Pane focus is built-in via the prefix: cmd+a Tab cycles, cmd+a h/j/k/l
 # or arrows do directional. No bindings needed.
