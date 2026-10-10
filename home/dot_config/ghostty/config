@@ -1,0 +1,68 @@
+# Ghostty Configuration
+
+# Font
+font-family = "JetBrains Mono"
+font-size = 14
+
+# Theme - uses built-in themes, run `ghostty +list-themes` to see all
+theme = Catppuccin Mocha
+
+# Window
+window-padding-x = 8
+window-padding-y = 8
+window-decoration = auto
+
+# Cursor
+cursor-style = bar
+cursor-style-blink = false
+
+# Shell integration
+shell-integration = zsh
+shell-integration-features = cursor,sudo,title,ssh-terminfo,ssh-env
+
+# Scrollback
+scrollback-limit = 10000000
+
+# Quick Terminal (Quake Mode)
+# Toggle with global keybind below
+quick-terminal-position = top
+quick-terminal-size = 40%
+quick-terminal-animation-duration = 0.15
+quick-terminal-autohide = true
+
+# Keybindings
+# Global hotkey for quake-mode terminal (works even when Ghostty isn't focused)
+keybind = global:ctrl+grave_accent=toggle_quick_terminal
+
+# Standard keybinds
+keybind = cmd+t=new_tab
+keybind = cmd+w=close_surface
+keybind = cmd+shift+left_bracket=previous_tab
+keybind = cmd+shift+right_bracket=next_tab
+
+# Splits
+keybind = cmd+d=new_split:right
+keybind = cmd+shift+d=new_split:down
+keybind = cmd+alt+left=goto_split:left
+keybind = cmd+alt+right=goto_split:right
+keybind = cmd+alt+up=goto_split:top
+keybind = cmd+alt+down=goto_split:bottom
+
+# Copy/paste
+keybind = cmd+c=copy_to_clipboard
+keybind = cmd+v=paste_from_clipboard
+
+# Font size
+keybind = cmd+plus=increase_font_size:1
+keybind = cmd+minus=decrease_font_size:1
+keybind = cmd+zero=reset_font_size
+
+# herdr prefix: rewrite cmd+a to ctrl+b so herdr sees \x02 as its leader.
+# Using ctrl+b (not ctrl+a) so \x01 stays free for readline's
+# beginning-of-line — Ghostty's default cmd+left=text:\x01 was colliding
+# with a ctrl+a prefix and dropping us into nav mode on cmd+left.
+keybind = cmd+a=text:\x02
+
+# Make left option behave as alt (so alt+[ / alt+] etc. reach the terminal
+# for tab navigation). Right option still types unicode characters.
+macos-option-as-alt = left

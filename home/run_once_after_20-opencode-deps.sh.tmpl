@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Install opencode plugin dependencies after the config is in place.
+set -euo pipefail
+
+OPENCODE_DIR="{{ .chezmoi.homeDir }}/.config/opencode"
+if command -v bun >/dev/null 2>&1 && [ -f "$OPENCODE_DIR/package.json" ]; then
+  echo "==> bun install (opencode plugins)..."
+  ( cd "$OPENCODE_DIR" && bun install )
+fi

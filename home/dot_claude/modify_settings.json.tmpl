@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+# chezmoi `modify_` script: receives the CURRENT ~/.claude/settings.json on stdin
+# and writes the new contents to stdout.
+#
+# settings.json has three owners and chezmoi is only one of them:
+#   - herdr owns the "hooks" entries pointing at herdr-agent-state.sh
+#     (written by `herdr integration install claude`, versioned by herdr)
+#   - Claude Code owns "enabledPlugins" / "extraKnownMarketplaces", which it
+#     rewrites at runtime whenever you add or remove a plugin
+#   - we own a small set of preferences we want identical on every machine
+#
+# A plain managed file would make every `chezmoi apply` revert the other two.
+# This script enforces only OUR keys and passes everything else through untouched.
+import json
+import sys
+
+# The portable set: preferences we want identical on every machine.
+# Everything not listed here is left exactly as we found it.
+PREFERENCES = {
+    "tui": "fullscreen",
+    "skipDangerousModePermissionPrompt": True,
+    "skipAutoPermissionPrompt": True,
+    "effortLevel": "medium",
+    "agentPushNotifEnabled": True,
+}
+
+# Permission grants are merged, not replaced, so a grant added on one machine
+# via the Claude Code UI survives the next apply.
+PERMISSION_ALLOW = ["Bash(bd:*)"]
+
+raw = sys.stdin.read().strip()
+try:
+    settings = json.loads(raw) if raw else {}
+except json.JSONDecodeError:
+    # Never destroy an unparseable file — leave it untouched and let the user look.
+    sys.stdout.write(raw)
+    sys.exit(0)
+
+if not isinstance(settings, dict):
+    sys.stdout.write(raw)
+    sys.exit(0)
+
+settings.update(PREFERENCES)
+
+permissions = settings.setdefault("permissions", {})
+allow = permissions.setdefault("allow", [])
+for grant in PERMISSION_ALLOW:
+    if grant not in allow:
+        allow.append(grant)
+
+{{- if stat (joinPath .chezmoi.homeDir "src/xx-internal-ai/shadow-factory") }}
+
+# Work machine only: the account guard/statusline enforce "work account outside
+# ~/src/personal". Deployed here, so wire them up. On a personal box these files
+# are not deployed at all (see .chezmoiignore) and these keys are left alone.
+GUARD = "bash '{{ .chezmoi.homeDir }}/.claude/hooks/account-guard.sh'"
+
+settings["statusLine"] = {
+    "type": "command",
+    "command": "bash '{{ .chezmoi.homeDir }}/.claude/hooks/account-statusline.sh'",
+}
+
+hooks = settings.setdefault("hooks", {})
+submit = hooks.setdefault("UserPromptSubmit", [])
+if not submit:
+    submit.append({"matcher": "*", "hooks": []})
+entries = submit[0].setdefault("hooks", [])
+if not any(e.get("command") == GUARD for e in entries):
+    # Prepend so the guard runs before herdr's state reporting.
+    entries.insert(0, {"type": "command", "command": GUARD, "timeout": 10})
+{{- end }}
+
+json.dump(settings, sys.stdout, indent=2)
+sys.stdout.write("\n")

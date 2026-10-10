@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@opencode-ai/plugin": "1.4.10",
+    "detect-terminal": "^2.0.0",
+    "node-notifier": "^10.0.1"
+  }
+}
