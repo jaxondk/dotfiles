@@ -34,7 +34,7 @@ done
 # re-run `chezmoi apply` (this script re-runs when its hash changes) or just
 # `brew install <name>` by hand.
 if [ -t 0 ]; then
-  for pkg in git-lfs postgresql@15 fzf fd tree tig lazygit just tmux opencode; do
+  for pkg in git-lfs postgresql@15 fzf fd tree tig lazygit just tmux opencode bjarneo/cliamp/cliamp; do
     printf "==> install optional tool '%s'? [y/N] " "$pkg"
     read -r ans
     case "$ans" in

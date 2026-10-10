@@ -44,3 +44,15 @@
 # the matching hook entries to settings.json. The script carries a HERDR_INTEGRATION_VERSION
 # that herdr bumps; committing it would pin every machine to one version forever.
 .claude/hooks/herdr-agent-state.sh
+
+# cliamp writes several files next to its config.toml. Only config.toml is tracked
+# (theme + Spotify client_id + bitrate); everything else is per-machine, tool-owned,
+# or sensitive and must never reach this public repo. spotify_credentials.json holds
+# an OAuth refresh_token in particular. These entries guard against a future
+# `chezmoi add -r ~/.config/cliamp` accidentally slurping them in.
+.config/cliamp/spotify_credentials.json
+.config/cliamp/history.toml
+.config/cliamp/resume.json
+.config/cliamp/cliamp.log
+.config/cliamp/cliamp.sock
+.config/cliamp/cliamp.sock.pid

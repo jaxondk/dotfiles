@@ -1,0 +1,6 @@
+theme = ""
+visualizer = "Retro"
+shuffle = true
+[spotify]
+client_id = "6b9f899ff190481c88db9a4f63a134aa"
+bitrate   = 320
