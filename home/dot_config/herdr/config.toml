@@ -29,5 +29,28 @@ next_workspace     = "shift+alt+]"
 
 # Indexed workspace jumps are built-in via prefix: cmd+a 1..9.
 
+# drovr (github:AVGVSTVS96/herdr-drovr) — move the focused tab or pane, live
+# agents included, via an fzf popup. herdr keeps keybindings in config, not in
+# the plugin manifest, so the plugin ships no bindings of its own.
+# Shift spelled out as prefix+shift+m to match reload_config above: 0.8.2's
+# stricter parser is happier with explicit modifiers than with a bare capital.
+[[keys.command]]
+key = "prefix+shift+m"
+type = "plugin_action"
+command = "drovr.move-tab"
+description = "move tab to workspace"
+
+[[keys.command]]
+key = "prefix+m"
+type = "plugin_action"
+command = "drovr.move-pane"
+description = "move pane to tab"
+
 [theme]
 name = "nord"
+
+# Replay recent terminal contents into restored panes after a server restart.
+# Trade-off: pane history can include secrets/tokens that flashed on screen.
+# Treat ~/.config/herdr/session-history.json like terminal history.
+[experimental]
+pane_history = true

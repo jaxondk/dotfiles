@@ -45,6 +45,13 @@
 # that herdr bumps; committing it would pin every machine to one version forever.
 .claude/hooks/herdr-agent-state.sh
 
+# Same reasoning, same script (run_once_after_40): the herdr agent skill is herdr's own
+# output, emitted by `herdr --skill`. The vendored copy had already gone two minor
+# versions stale — it still taught the pre-0.7.5 `herdr wait`, which 0.7.5 renamed to
+# `pane wait-output`/`agent wait` — which is exactly the pinning this avoids. Each
+# machine now gets the skill that its own herdr binary ships.
+.claude/skills/herdr/SKILL.md
+
 # cliamp writes several files next to its config.toml. Only config.toml is tracked
 # (theme + Spotify client_id + bitrate); everything else is per-machine, tool-owned,
 # or sensitive and must never reach this public repo. spotify_credentials.json holds

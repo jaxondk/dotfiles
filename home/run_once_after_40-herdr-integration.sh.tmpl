@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 # Installs herdr's Claude Code integration.
 #
-# `herdr integration install claude` writes ~/.claude/hooks/herdr-agent-state.sh
-# and adds the matching hook entries to ~/.claude/settings.json. Both are herdr's
-# output, not ours — the hook script carries a HERDR_INTEGRATION_VERSION that herdr
-# bumps over time. We deliberately do NOT track either in chezmoi; committing them
-# would pin every machine to whatever version was current on the day they were
-# committed. Running the installer here means each machine gets the version that
-# ships with its own herdr binary.
+# Two pieces of herdr-generated Claude Code state, neither tracked in chezmoi:
+#
+#   1. `herdr integration install claude` writes ~/.claude/hooks/herdr-agent-state.sh
+#      and adds the matching hook entries to ~/.claude/settings.json.
+#   2. `herdr --skill` emits herdr's agent skill to ~/.claude/skills/herdr/SKILL.md.
+#
+# Both are herdr's output, not ours — the hook carries a HERDR_INTEGRATION_VERSION that
+# herdr bumps over time, and the skill tracks the CLI surface of whatever version is
+# installed. We deliberately do NOT track either in chezmoi; committing them would pin
+# every machine to whatever version was current on the day they were committed. The
+# vendored skill proved the point: it sat at the pre-0.7.5 CLI (`herdr wait`, renamed to
+# `pane wait-output`/`agent wait`) while the binary moved on to 0.8.2. Generating here
+# means each machine gets what its own herdr binary ships.
 #
 # Runs after the package install step, so `herdr` is on PATH by now.
 set -euo pipefail
@@ -19,8 +25,21 @@ fi
 
 echo "==> Installing herdr Claude Code integration..."
 herdr integration install claude || {
+  # Non-fatal, and deliberately not an `exit`: the skill below is independent of
+  # the hook install and should still be written if only one of the two fails.
   echo "==> herdr integration install failed (non-fatal); run it by hand later." >&2
-  exit 0
 }
+
+# herdr's own agent skill, from the same binary. Written via .new + mv so a failed
+# run can't truncate a working skill the way a plain `>` redirect would.
+skill_dir="$HOME/.claude/skills/herdr"
+echo "==> Writing herdr agent skill to $skill_dir/SKILL.md..."
+mkdir -p "$skill_dir"
+if herdr --skill > "$skill_dir/SKILL.md.new"; then
+  mv "$skill_dir/SKILL.md.new" "$skill_dir/SKILL.md"
+else
+  rm -f "$skill_dir/SKILL.md.new"
+  echo "==> herdr --skill failed (non-fatal); left any existing skill in place." >&2
+fi
 
 echo "==> herdr integration complete."
