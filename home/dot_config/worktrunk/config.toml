@@ -3,10 +3,6 @@
 # Personal hooks that apply to ALL repositories.
 # Project-specific hooks belong in each repo's .config/wt.toml.
 
-[post-create]
-# Track the new branch with Graphite
-graphite-track = "gt track || true"
-
 [projects]
 
 [projects."github.com/Twenty-IO/firecrew"]
