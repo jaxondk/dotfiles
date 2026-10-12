@@ -156,8 +156,9 @@ The rule of thumb: **if a tool generates it when you install or use it, track th
 not the output.** Two useful tests — would you be unhappy if this were regenerated from
 scratch on a new machine, and does the tool write to it behind your back while you work?
 
-Lockfiles are the deliberate exception: `lazy-lock.json` and `package-lock.json` are
-generated too, but pinning exact versions *is* the point, so they stay tracked.
+Lockfiles are the deliberate exception: `lazy-lock.json` is generated too, but pinning
+exact plugin versions *is* the point, so it stays tracked. opencode's `package-lock.json`
+is not: deps install via `bun install`, which reads only `bun.lock`, so it pins nothing.
 
 `settings.json` is the mixed case — herdr owns its `hooks` entries, Claude Code owns
 `enabledPlugins`, and we own a handful of preferences. A static managed file would make

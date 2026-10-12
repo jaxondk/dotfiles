@@ -5,6 +5,9 @@
 # is the managed source of truth).
 .config/opencode/node_modules
 .config/opencode/bun.lock
+# package-lock.json is npm's, written whenever npm touches the dir. bun installs from
+# bun.lock and never reads it, so a tracked copy pinned nothing and only drifted.
+.config/opencode/package-lock.json
 .config/opencode/kdco-notify.json
 .config/opencode/.bd-enabled
 
