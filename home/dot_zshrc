@@ -111,6 +111,9 @@ export PATH="$HOME/.cargo/bin:$PATH"
 eval "$(direnv hook zsh)"
 
 # Starship prompt (must be last)
+# Pin the config so an inherited STARSHIP_CONFIG (e.g. devbox defaults leaking
+# through a long-lived herdr/tmux server) can't swap in a different theme.
+export STARSHIP_CONFIG="$HOME/.config/starship.toml"
 eval "$(starship init zsh)"
 export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"
 
