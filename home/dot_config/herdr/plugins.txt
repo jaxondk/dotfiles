@@ -1,0 +1,3 @@
+# herdr plugins every machine should have (owner/repo, one per line).
+# Appended automatically by the herdr() wrapper in ~/.zsh/functions.zsh.
+AVGVSTVS96/herdr-drovr

@@ -419,3 +419,22 @@ opencode() {
   OPENCODE_CONFIG_CONTENT='{"enterprise":{"url":"https://YOUR_SHARE_BACKEND_URL"}}' \
     command opencode "${args[@]}"
 }
+
+# Wrapper around `herdr` that records `herdr plugin install <owner/repo>` in the
+# chezmoi-tracked ~/.config/herdr/plugins.txt, so other machines install it on
+# their next `chezmoi update`. All other subcommands pass straight through.
+herdr() {
+  if [[ "${1:-}" != "plugin" || "${2:-}" != "install" ]]; then
+    command herdr "$@"
+    return
+  fi
+
+  command herdr "$@" || return
+  local repo="${@[-1]}" src
+  src=$(chezmoi source-path ~/.config/herdr/plugins.txt) || return
+  if ! grep -qixF -- "$repo" "$src"; then
+    echo "$repo" >> "$src"
+    chezmoi apply ~/.config/herdr/plugins.txt
+    echo "Added $repo to herdr plugins.txt -- commit and push ~/dotfiles to sync it."
+  fi
+}

@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Installs the herdr plugins listed in ~/.config/herdr/plugins.txt.
+# The plugin install itself is herdr-managed state (plugins/ + plugins.json hold
+# machine-specific paths), so we track only the list and install from it here.
+# Reruns whenever the list changes: plugins.txt hash {{ include "dot_config/herdr/plugins.txt" | sha256sum }}
+# ponytail: install-only; removing a line does not uninstall anywhere.
+set -euo pipefail
+
+if ! command -v herdr >/dev/null 2>&1; then
+  echo "==> herdr not on PATH; skipping herdr plugins."
+  exit 0
+fi
+
+list="$HOME/.config/herdr/plugins.txt"
+installed=$(jq -r '.[].source | "\(.owner)/\(.repo)"' "$HOME/.config/herdr/plugins.json" 2>/dev/null || true)
+
+grep -vE '^\s*(#|$)' "$list" | while read -r p; do
+  grep -qixF -- "$p" <<<"$installed" && continue
+  echo "==> Installing herdr plugin $p..."
+  herdr plugin install -y "$p" || echo "==> $p install failed (non-fatal); run 'herdr plugin install $p' by hand." >&2
+done
+
+# Drift warning: installed here but not in the tracked list.
+while read -r p; do
+  [[ -n "$p" ]] || continue
+  grep -qixF -- "$p" "$list" || echo "==> herdr plugin $p is installed but not in plugins.txt; add it to sync it." >&2
+done <<<"$installed"
