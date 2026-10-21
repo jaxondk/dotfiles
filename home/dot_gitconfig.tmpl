@@ -20,3 +20,14 @@
 [includeIf "gitdir:~/src/personal/"]
 	path = ~/.gitconfig-personal
 {{- end }}
+{{- if eq .chezmoi.os "linux" }}
+
+# Linux boxes (devbox) auth to GitHub over https via gh. Owned here so
+# `gh auth setup-git` doesn't write unmanaged lines that block chezmoi apply.
+[credential "https://github.com"]
+	helper =
+	helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !gh auth git-credential
+{{- end }}
