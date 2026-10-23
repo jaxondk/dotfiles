@@ -1,5 +1,9 @@
 # . "$HOME/.local/bin/env"
 
+# Drop duplicate PATH entries, e.g. ones inherited from a long-lived herdr/tmux
+# server that already sourced this file.
+typeset -U path PATH
+
 # Fix for Ghostty terminal on systems without its terminfo
 if [[ "$TERM" == "xterm-ghostty" ]] && ! infocmp xterm-ghostty &>/dev/null; then
   export TERM=xterm-256color
