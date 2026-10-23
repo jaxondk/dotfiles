@@ -66,4 +66,28 @@ elif command -v dnf >/dev/null 2>&1; then
 fi
 {{ end -}}
 
+# Optional bun-global tools — same interactive-only y/N prompt as above, but
+# OS-agnostic since they come from npm, not brew. critique is the TUI git diff
+# viewer that the critique() wrapper in ~/.zsh/functions.zsh fronts.
+if [ -t 0 ] && command -v bun >/dev/null 2>&1; then
+  for pkg in critique; do
+    printf "==> install optional tool '%s' (bun -g)? [y/N] " "$pkg"
+    read -r ans
+    case "$ans" in
+      y|Y|yes) bun install -g "$pkg" || echo "==> WARNING: bun install -g $pkg failed" >&2 ;;
+    esac
+  done
+fi
+
+{{ if eq .chezmoi.os "linux" -}}
+# A Nix-built bun only searches the Nix store for shared libs, so critique's
+# tree-sitter addon can't load the system libstdc++. Put Nix's copy in the
+# profile; the critique() wrapper points LD_LIBRARY_PATH at it.
+if command -v critique >/dev/null 2>&1 && command -v nix >/dev/null 2>&1 \
+   && [[ "$(readlink -f "$(command -v bun)")" == /nix/store/* ]] \
+   && [ ! -e "$HOME/.nix-profile/lib/libstdc++.so.6" ]; then
+  nix profile install nixpkgs#stdenv.cc.cc.lib || echo "==> WARNING: couldn't install Nix libstdc++; critique may fail to start" >&2
+fi
+{{ end -}}
+
 echo "==> Package install step complete."

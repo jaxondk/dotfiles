@@ -398,6 +398,15 @@ critique() {
   mkdir -p ~/.critique
   printf '{"key":"%s"}\n' "$token" >~/.critique/license.json
 
+  # Nix-built bun can't see the system libstdc++ that critique's tree-sitter
+  # addon needs; use the Nix profile's copy when there is one (installed by
+  # run_once_before_10).
+  local ld_path="$LD_LIBRARY_PATH"
+  if [[ -e ~/.nix-profile/lib/libstdc++.so.6 ]]; then
+    ld_path="$HOME/.nix-profile/lib${ld_path:+:$ld_path}"
+  fi
+
+  LD_LIBRARY_PATH="$ld_path" \
   CRITIQUE_WORKER_URL="https://open-inspect-critique-twenty.xx-agents.workers.dev" \
     command critique "$@"
 }
